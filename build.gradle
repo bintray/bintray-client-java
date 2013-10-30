@@ -1,16 +1,5 @@
-buildscript {
-    repositories {
-        jcenter()
-    }
-
-    dependencies {
-        classpath 'org.jfrog.buildinfo:build-info-extractor-gradle:2.1.0'
-    }
-}
-
 allprojects {
     apply plugin: 'idea'
-    apply plugin: 'artifactory-publish'
     apply plugin: 'maven-publish'
 
     group = 'com.jfrog.bintray.client'
@@ -18,21 +7,7 @@ allprojects {
     repositories {
         jcenter()
     }
-
-    artifactory {
-        contextUrl = 'https://oss.jfrog.org'
-        resolve {
-            repoKey = 'libs=release'
-        }
-        publish {
-            defaults {
-                publishArtifacts = true
-            }
-        }
-    }
 }
-
-artifactoryPublish.skip = true
 
 subprojects() {
     apply plugin: 'java'
@@ -46,31 +21,10 @@ subprojects() {
 }
 
 project(':api') {
-    apply plugin: 'artifactory-publish'
-    apply plugin: 'maven-publish'
-
     archivesBaseName = 'bintray-client-java-api'
-
-    publishing {
-        publications {
-            clientApi(MavenPublication) {
-                from components.java
-                artifact sourceJar {
-                    classifier 'source'
-                }
-            }
-        }
-    }
-
-    artifactoryPublish {
-        publications(publishing.publications.clientApi)
-    }
 }
 
 project(':impl') {
-    apply plugin: 'artifactory-publish'
-    apply plugin: 'maven-publish'
-
     archivesBaseName = 'bintray-client-java-impl'
 
     apply plugin: 'groovy'
@@ -80,21 +34,6 @@ project(':impl') {
         compile 'org.codehaus.groovy:groovy-all:1.8.6'
         compile 'org.codehaus.groovy.modules.http-builder:http-builder:0.6'
         testCompile 'org.spockframework:spock-core:0.7-groovy-1.8'
-    }
-
-    publishing {
-        publications {
-            clientImpl(MavenPublication) {
-                from components.java
-                artifact sourceJar {
-                    classifier 'source'
-                }
-            }
-        }
-    }
-
-    artifactoryPublish {
-        publications(publishing.publications.clientImpl)
     }
 }
 
