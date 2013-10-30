@@ -48,11 +48,12 @@ subprojects() {
 }
 
 project(':api') {
-    archivesBaseName = 'bintray-client-java-api'
-
     publishing {
         publications {
             api(MavenPublication) {
+
+                artifactId 'bintray-client-java-api'
+
                 from components.java
                 artifact sourceJar {
                     classifier 'source'
@@ -67,8 +68,6 @@ project(':api') {
 }
 
 project(':impl') {
-    archivesBaseName = 'bintray-client-java-impl'
-
     apply plugin: 'groovy'
 
     dependencies {
@@ -81,6 +80,9 @@ project(':impl') {
     publishing {
         publications {
             impl(MavenPublication) {
+
+                artifactId 'bintray-client-java-impl'
+
                 from components.java
                 artifact sourceJar {
                     classifier 'source'
