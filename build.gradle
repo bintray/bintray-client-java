@@ -1,5 +1,16 @@
+buildscript {
+    repositories {
+        jcenter()
+    }
+
+    dependencies {
+        classpath 'org.jfrog.buildinfo:build-info-extractor-gradle:2.2.1'
+    }
+}
+
 allprojects {
     apply plugin: 'idea'
+    apply plugin: 'artifactory'
     apply plugin: 'maven-publish'
 
     group = 'com.jfrog.bintray.client'
