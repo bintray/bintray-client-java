@@ -1,0 +1,119 @@
+buildscript {
+    repositories {
+        jcenter()
+    }
+
+    dependencies {
+        classpath 'org.jfrog.buildinfo:build-info-extractor-gradle:2.1.0'
+    }
+}
+
+allprojects {
+    apply plugin: 'idea'
+    apply plugin: 'artifactory-publish'
+    apply plugin: 'maven-publish'
+
+    group = 'com.jfrog.bintray.client'
+
+    repositories {
+        jcenter()
+    }
+
+    artifactory {
+        contextUrl = 'https://oss.jfrog.org'
+        resolve {
+            repoKey = 'libs=release'
+        }
+        publish {
+            defaults {
+                publishArtifacts = true
+            }
+        }
+    }
+}
+
+artifactoryPublish.skip = true
+
+subprojects() {
+    apply plugin: 'java'
+
+    sourceCompatibility = 1.5
+    targetCompatibility = 1.5
+
+    dependencies {
+        compile 'joda-time:joda-time:2.3'
+    }
+}
+
+project(':api') {
+    apply plugin: 'artifactory-publish'
+    apply plugin: 'maven-publish'
+
+    archivesBaseName = 'bintray-client-java-api'
+
+    publishing {
+        publications {
+            clientApi(MavenPublication) {
+                from components.java
+                artifact sourceJar {
+                    classifier 'source'
+                }
+            }
+        }
+    }
+
+    artifactoryPublish {
+        publications(publishing.publications.clientApi)
+    }
+}
+
+project(':impl') {
+    apply plugin: 'artifactory-publish'
+    apply plugin: 'maven-publish'
+
+    archivesBaseName = 'bintray-client-java-impl'
+
+    apply plugin: 'groovy'
+
+    dependencies {
+        compile project(':api')
+        compile 'org.codehaus.groovy:groovy-all:1.8.6'
+        compile 'org.codehaus.groovy.modules.http-builder:http-builder:0.6'
+        testCompile 'org.spockframework:spock-core:0.7-groovy-1.8'
+    }
+
+    publishing {
+        publications {
+            clientImpl(MavenPublication) {
+                from components.java
+                artifact sourceJar {
+                    classifier 'source'
+                }
+            }
+        }
+    }
+
+    artifactoryPublish {
+        publications(publishing.publications.clientImpl)
+    }
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '1.8'
+}
+
+idea {
+    project {
+        jdkName = '1.7'
+        languageLevel = '1.5'
+        wildcards += '?*.gradle'
+        ipr {
+            withXml { provider ->
+                def node = provider.asNode()
+                // Use git
+                def vcsConfig = node.component.find { it.'@name' == 'VcsDirectoryMappings' }
+                vcsConfig.mapping[0].'@vcs' = 'Git'
+            }
+        }
+    }
+}
