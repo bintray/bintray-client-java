@@ -1,6 +1,6 @@
 package com.jfrog.bintray.client.api.handle;
 
-import com.jfrog.bintray.client.api.builder.VersionBuilder;
+import com.jfrog.bintray.client.api.details.VersionDetails;
 import com.jfrog.bintray.client.api.model.Version;
 
 /**
@@ -10,9 +10,7 @@ public interface VersionHandle extends Handle<Version> {
 
     PackageHandle pkg();
 
-    VersionHandle create(VersionBuilder versionBuilder);
-
-    VersionHandle update(VersionBuilder versionBuilder);
+    VersionHandle update(VersionDetails versionDetails);
 
     VersionHandle delete();
 }

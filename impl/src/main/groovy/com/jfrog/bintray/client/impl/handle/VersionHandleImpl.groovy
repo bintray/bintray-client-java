@@ -1,6 +1,6 @@
 package com.jfrog.bintray.client.impl.handle
 
-import com.jfrog.bintray.client.api.builder.VersionBuilder
+import com.jfrog.bintray.client.api.details.VersionDetails
 import com.jfrog.bintray.client.api.handle.PackageHandle
 import com.jfrog.bintray.client.api.handle.VersionHandle
 import com.jfrog.bintray.client.api.model.Version
@@ -46,16 +46,7 @@ class VersionHandleImpl implements VersionHandle {
         versionImpl
     }
 
-    VersionHandle create(VersionBuilder versionBuilder) {
-        def requestBody = [name: name, desc: versionBuilder.description]
-        if (versionBuilder.released) {
-            requestBody.released = ISODateTimeFormat.dateTime().print(versionBuilder.released)
-        }
-        bintrayHandle.post("packages/${packageHandle.repository().owner().name()}/${packageHandle.repository().name()}/${packageHandle.name()}/versions", requestBody)
-        this
-    }
-
-    VersionHandle update(VersionBuilder versionBuilder) {
+    VersionHandle update(VersionDetails versionBuilder) {
         def requestBody = [desc: versionBuilder.description]
         if (versionBuilder.released) {
             requestBody.released = ISODateTimeFormat.dateTime().print(versionBuilder.released)

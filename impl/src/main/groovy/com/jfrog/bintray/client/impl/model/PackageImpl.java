@@ -17,8 +17,8 @@ public class PackageImpl implements Pkg {
     private List<String> labels;
     private List<String> attributeNames;
     private Integer rating;
-    private Integer ratingCount;
-    private Integer followersCount;
+    private int ratingCount;
+    private int followersCount;
     private DateTime created;
     private List<String> versions;
     private String latestVersion;
@@ -72,7 +72,7 @@ public class PackageImpl implements Pkg {
         return attributeNames;
     }
 
-    public int rating() {
+    public Integer rating() {
         return rating;
     }
 
@@ -102,5 +102,42 @@ public class PackageImpl implements Pkg {
 
     public String linkedToRepo() {
         return linkedToRepo;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        PackageImpl aPackage = (PackageImpl) o;
+
+        if (!name.equals(aPackage.name)) return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        return name.hashCode();
+    }
+
+    @Override
+    public String toString() {
+        return "Package{" +
+                "name='" + name + '\'' +
+                ", repository='" + repository + '\'' +
+                ", owner='" + owner + '\'' +
+                ", description='" + description + '\'' +
+                ", labels=" + labels +
+                ", attributeNames=" + attributeNames +
+                ", rating=" + rating +
+                ", ratingCount=" + ratingCount +
+                ", followersCount=" + followersCount +
+                ", created=" + created +
+                ", versions=" + versions +
+                ", latestVersion='" + latestVersion + '\'' +
+                ", updated=" + updated +
+                ", linkedToRepo='" + linkedToRepo + '\'' +
+                '}';
     }
 }

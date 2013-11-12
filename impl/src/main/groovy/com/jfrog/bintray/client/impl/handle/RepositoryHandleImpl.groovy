@@ -1,5 +1,6 @@
 package com.jfrog.bintray.client.impl.handle
 
+import com.jfrog.bintray.client.api.details.PackageDetails
 import com.jfrog.bintray.client.api.handle.PackageHandle
 import com.jfrog.bintray.client.api.handle.RepositoryHandle
 import com.jfrog.bintray.client.api.handle.SubjectHandle
@@ -31,6 +32,15 @@ class RepositoryHandleImpl implements RepositoryHandle {
 
     PackageHandle pkg(String packageName) {
         new PackageHandleImpl(bintrayHandle, this, packageName)
+    }
+
+    //TODO PackageDetails createPkgWithName(String name) {
+    //TODO so the usage will be Package pkg = createPackageWithName('bla').description('blabla').create().get()
+    PackageHandle createPkg(PackageDetails packageBuilder) {
+        def requestBody = [name: packageBuilder.name, desc: packageBuilder.description, labels: packageBuilder.labels,
+                licenses: packageBuilder.licenses]
+        bintrayHandle.post("packages/${this.owner().name()}/${this.name()}", requestBody)
+        new PackageHandleImpl(bintrayHandle, this, packageBuilder.name)
     }
 
     Repository get() {

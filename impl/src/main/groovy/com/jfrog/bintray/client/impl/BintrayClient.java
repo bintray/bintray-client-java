@@ -12,8 +12,8 @@ import java.net.URISyntaxException;
  */
 public class BintrayClient {
 
-    public static Bintray create(String username, String password) {
-        return create("https://api.bintray.com", username, password);
+    public static Bintray create(String username, String apiKey) {
+        return create("https://api.bintray.com", username, apiKey);
     }
 
     public static Bintray create(String url, String username, String apiKey) {

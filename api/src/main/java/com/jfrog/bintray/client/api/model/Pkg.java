@@ -21,7 +21,7 @@ public interface Pkg {
 
     List<String> attributeNames();
 
-    int rating();
+    Integer rating();
 
     int ratingCount();
 

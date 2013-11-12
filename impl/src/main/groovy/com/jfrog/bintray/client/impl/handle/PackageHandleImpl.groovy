@@ -1,6 +1,7 @@
 package com.jfrog.bintray.client.impl.handle
 
-import com.jfrog.bintray.client.api.builder.PackageBuilder
+import com.jfrog.bintray.client.api.details.PackageDetails
+import com.jfrog.bintray.client.api.details.VersionDetails
 import com.jfrog.bintray.client.api.handle.PackageHandle
 import com.jfrog.bintray.client.api.handle.RepositoryHandle
 import com.jfrog.bintray.client.api.handle.VersionHandle
@@ -44,14 +45,7 @@ class PackageHandleImpl implements PackageHandle {
                 linkedToRepo: data.linked_to_repo)
     }
 
-    PackageHandle create(PackageBuilder packageBuilder) {
-        def requestBody = [name: name, desc: packageBuilder.description, labels: packageBuilder.labels,
-                licenses: packageBuilder.licenses]
-        bintrayHandle.post("packages/${repositoryHandle.owner().name()}/${repositoryHandle.name()}", requestBody)
-        this
-    }
-
-    PackageHandle update(PackageBuilder packageBuilder) {
+    PackageHandle update(PackageDetails packageBuilder) {
         def requestBody = [desc: packageBuilder.description, labels: packageBuilder.labels,
                 licenses: packageBuilder.licenses]
         bintrayHandle.patch("packages/${repositoryHandle.owner().name()}/${repositoryHandle.name()}/$name", requestBody)
@@ -61,5 +55,17 @@ class PackageHandleImpl implements PackageHandle {
     PackageHandle delete() {
         bintrayHandle.delete("packages/${repositoryHandle.owner().name()}/${repositoryHandle.name()}/$name")
         this
+    }
+
+    //TODO VersionDetails createPkgWithName(String name) {
+    //TODO so the usage will be Version version = createVersion('1.0').description('blabla').create().get()
+    @Override
+    VersionHandle createVersion(VersionDetails versionBuilder) {
+        def requestBody = [name: versionBuilder.name, desc: versionBuilder.description]
+        if (versionBuilder.released) {
+            requestBody.released = ISODateTimeFormat.dateTime().print(versionBuilder.released)
+        }
+        bintrayHandle.post("packages/${this.repository().owner().name()}/${this.repository().name()}/${this.name()}/versions", requestBody)
+        new VersionHandleImpl(bintrayHandle, this, versionBuilder.name)
     }
 }

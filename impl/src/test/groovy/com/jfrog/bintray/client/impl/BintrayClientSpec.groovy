@@ -1,121 +1,181 @@
 package com.jfrog.bintray.client.impl
 
-import com.jfrog.bintray.client.api.builder.PackageBuilder
-import com.jfrog.bintray.client.api.builder.VersionBuilder
-import com.jfrog.bintray.client.api.handle.*
+import com.jfrog.bintray.client.api.details.PackageDetails
+import com.jfrog.bintray.client.api.details.VersionDetails
+import com.jfrog.bintray.client.api.handle.Bintray
 import com.jfrog.bintray.client.api.model.Pkg
-import com.jfrog.bintray.client.api.model.Repository
 import com.jfrog.bintray.client.api.model.Subject
 import com.jfrog.bintray.client.api.model.Version
+import com.timgroup.jgravatar.Gravatar
+import groovyx.net.http.ContentEncoding
 import groovyx.net.http.HttpResponseException
-import org.apache.http.HttpStatus
-import org.joda.time.DateTime
+import groovyx.net.http.RESTClient
+import org.joda.time.format.ISODateTimeFormat
+import spock.lang.Shared
 import spock.lang.Specification
+
+import static java.lang.System.setProperty
+import static org.apache.http.HttpStatus.SC_NOT_FOUND
+
+
 /**
  * @author Noam Y. Tenne
  */
 class BintrayClientSpec extends Specification {
+    private final static String REPO_NAME = 'generic'
+    private final static String PKG_NAME = 'bla'
+    private static String VERSION = '1.0'
+    @Shared
+    private Properties connectionProperties
+    @Shared
+    private Bintray bintray
+    @Shared
+    private RESTClient restClient
+    @Shared
+    private PackageDetails pkgBuilder
+    @Shared
+    private VersionDetails versionBuilder
 
-    def 'get chain'() {
-        setup:
-        Bintray create = BintrayClient.create('http://localhost:8080/interaction/api/v1/', 'joebloggs', '7e9de678f3c87f9df037f06d09b157e7a7b1ec6552289d61550b2628a8b9d4bb')
-
-        when:
-        SubjectHandle subject = create.currentSubject()
-        Subject joe = subject.get()
-
-        then:
-        joe.name == 'joebloggs'
-
-        and:
-        when:
-        RepositoryHandle repository = subject.repository('jimson')
-        Repository jimson = repository.get()
-
-        then:
-        jimson.name == 'jimson'
-
-        and:
-        when:
-        PackageHandle packageHandle = repository.pkg('johnsy')
-        Pkg johnsy = packageHandle.get()
-
-        then:
-        johnsy.name == 'johnsy'
-
-        and:
-        when:
-        VersionHandle versionHandle = packageHandle.version('555')
-        Version version = versionHandle.get()
-
-        then:
-        version.name == '555'
+    void setup() {
     }
 
-    def 'create chain'() {
-        setup:
-        Bintray create = BintrayClient.create('http://localhost:8080/interaction/api/v1/', 'joebloggs', '7e9de678f3c87f9df037f06d09b157e7a7b1ec6552289d61550b2628a8b9d4bb')
-        SubjectHandle subject = create.currentSubject()
-        RepositoryHandle centralRepo = subject.repository('jimson')
+    def setupSpec() {
+        this.connectionProperties = new Properties()
+        bintray = connect(this.connectionProperties)
+        restClient = new RESTClient('https://api.bintray.com')
+        restClient.contentEncoding = ContentEncoding.Type.GZIP
+        restClient.auth.basic connectionProperties.username as String, connectionProperties.apiKey as String
+        pkgBuilder = new PackageDetails(PKG_NAME).description('blabla').labels(['l1', 'l2']).licenses(['Apache 2'])
+        versionBuilder = new VersionDetails(VERSION).description('versionDesc')
+        setProperty 'org.apache.commons.logging.Log', 'org.apache.commons.logging.impl.SimpleLog'
+        setProperty 'org.apache.commons.logging.simplelog.showdatetime', 'true'
+        setProperty 'org.apache.commons.logging.simplelog.log.org.apache.http', 'DEBUG'
+        setProperty 'org.apache.commons.logging.simplelog.log.org.apache.http.wire', 'ERROR'
 
-        PackageHandle newPackage = centralRepo.pkg("pkg${new Random(System.currentTimeMillis()).nextInt()}")
-                .create(new PackageBuilder().description('jimson').labels(['label1', 'label2']).licenses(['Apache 2']))
-
-        when:
-        Pkg newPackageModel = newPackage.get()
-
-        then:
-        newPackageModel.name == newPackage.name
-        newPackageModel.owner == 'joebloggs'
-        newPackageModel.description == 'jimson'
-        newPackageModel.labels == ['label1', 'label2']
-        newPackageModel.created
-        newPackageModel.updated
-
-        and:
-        when:
-        DateTime releasedDateTime = new DateTime()
-        VersionHandle newVersion = newPackage.version("version${new Random(System.currentTimeMillis()).nextInt()}")
-                .create(new VersionBuilder().description('description').released(releasedDateTime))
-        Version newVersionModel = newVersion.get()
-
-        then:
-        newVersionModel.name == newVersion.name
-        newVersionModel.description == 'description'
-        newVersionModel.released == releasedDateTime
     }
 
-    def 'delete chain'() {
+    def 'Connection is successful and subject has correct username and avatar'() {
+        //noinspection JavaStylePropertiesInvocation,GroovySetterCallCanBePropertyAccess
         setup:
-        Bintray create = BintrayClient.create('http://localhost:8080/interaction/api/v1/', 'pigglesmcpiggles', '0b5c74d7040032a5cca4668873a616d7633d1d55d32c32cb7bc81f3c6c8')
-        SubjectHandle subject = create.currentSubject()
-        RepositoryHandle centralRepo = subject.repository('jimson')
-        PackageHandle newPackage = centralRepo.pkg("pkg${new Random(System.currentTimeMillis()).nextInt()}")
-                .create(new PackageBuilder().description('jimson').labels(['label1', 'label2']).licenses(['Apache 2']))
-
-        assert newPackage.get()
-
-        DateTime releasedDateTime = new DateTime()
-        VersionHandle newVersion = newPackage.version("version${new Random(System.currentTimeMillis()).nextInt()}")
-                .create(new VersionBuilder().description('description').released(releasedDateTime))
-
-        assert newVersion.get()
+        //setter returns `this`? WTF!
+        Gravatar gravatar = new Gravatar().setSize(140)
 
         when:
-        newVersion.delete()
-        newVersion.get()
+        Subject clienttests = bintray.currentSubject().get()
 
         then:
-        HttpResponseException ex = thrown(HttpResponseException)
-        ex.response.status == HttpStatus.SC_NOT_FOUND
+        clienttests.name == connectionProperties.username
+        new URL(clienttests.gravatarId).bytes == gravatar.download(connectionProperties.email as String)
+    }
 
+    def 'Default Repos exist'(String repoName, def _) {
+        expect:
+        bintray.currentSubject().repository(repoName)
+
+        where:
+        repoName  | _
+        'maven'   | _
+        'rpm'     | _
+        'deb'     | _
+        'generic' | _
+    }
+
+    def 'Package created'() {
+        setup:
+        def repository = bintray.currentSubject().repository(REPO_NAME)
+
+        when:
+        Pkg pkg = repository.createPkg(pkgBuilder).get()
+        def actual = restClient.get(path: "/packages/$connectionProperties.username/$REPO_NAME/$PKG_NAME").data
+
+        then:
+        pkg.name() == actual.name
+        pkg.repository() == actual.repository
+        pkg.owner() == actual.owner
+        pkg.description() == actual.desc
+        pkg.labels() == actual.labels
+        pkg.attributeNames() == actual.attribute_names
+        println pkg
+        pkg.rating() == actual.rating?.toInteger()
+        pkg.ratingCount() == actual.rating_count?.toInteger()
+        pkg.followersCount() == actual.followers_count?.toInteger()
+        pkg.created() == ISODateTimeFormat.dateTime().parseDateTime(actual.created as String)
+        pkg.versions() == actual.versions
+        pkg.latestVersion() == actual.latest_version
+        pkg.updated() == ISODateTimeFormat.dateTime().parseDateTime(actual.updated as String)
+        pkg.linkedToRepo() == actual.linked_to_repo
+    }
+
+    def 'Version created'() {
+        setup:
+        def pkg = bintray.currentSubject().repository(REPO_NAME).createPkg(pkgBuilder)
+
+        when:
+        Version version = pkg.createVersion(versionBuilder).get()
+        def actual = restClient.get(path: "/packages/$connectionProperties.username/$REPO_NAME/$PKG_NAME/versions/$VERSION").data
+
+        then:
+        version.name() == actual.name
+        version.description() == actual.desc
+        version.pkg() == actual.pkg
+        version.repository() == actual.repository
+        version.owner() == actual.owner
+        version.labels() == actual.labels
+        version.attributeNames() == actual.attribute_names
+        version.ordinal() == actual.ordinal.toInteger()
+        if (actual.created) {
+            version.created() == ISODateTimeFormat.dateTime().parseDateTime(actual.created as String)
+        }
+        if (actual.updated) {
+            version.updated() == ISODateTimeFormat.dateTime().parseDateTime(actual.updated as String)
+        }
+        if (actual.released) {
+            version.released() == ISODateTimeFormat.dateTime().parseDateTime(actual.released as String)
+        }
+    }
+
+    def '404s'() {
+        when:
+        bintray.subject('bla').get()
+        then:
+        HttpResponseException e = thrown()
+        e.statusCode == SC_NOT_FOUND
         and:
         when:
-        newPackage.delete()
-        newPackage.get()
-
+        bintray.currentSubject().repository('bla').get()
         then:
-        ex = thrown(HttpResponseException)
-        ex.response.status == HttpStatus.SC_NOT_FOUND
+        e = thrown()
+        e.statusCode == SC_NOT_FOUND
+        and:
+        when:
+        bintray.currentSubject().repository(REPO_NAME).pkg('bla').get()
+        then:
+        e = thrown()
+        e.statusCode == SC_NOT_FOUND
+        and:
+        when:
+        bintray.currentSubject().repository(REPO_NAME).pkg(PKG_NAME).version('3434').get()
+        then:
+        e = thrown()
+        e.statusCode == SC_NOT_FOUND
+    }
+
+    def cleanup() {
+        try {
+            restClient.delete(path: "/packages/$connectionProperties.username/$REPO_NAME/$PKG_NAME")
+        } catch (HttpResponseException e) {
+            if (e.response.status != SC_NOT_FOUND) //don't care
+                throw e
+        }
+    }
+
+    private Bintray connect(Properties connectionProperties = new Properties()) {
+        this.class.getResourceAsStream('/bintray-client.properties').withStream {
+            connectionProperties.load(it)
+        }
+        assert connectionProperties
+        assert connectionProperties.username
+        assert connectionProperties.apiKey
+        BintrayClient.create(connectionProperties.url as String ?: 'https://api.bintray.com', connectionProperties.username as String, connectionProperties.apiKey as String)
     }
 }
