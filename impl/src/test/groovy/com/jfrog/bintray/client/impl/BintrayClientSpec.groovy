@@ -54,9 +54,14 @@ class BintrayClientSpec extends Specification {
         if (apiKeyFromEnv) {
             connectionProperties.apiKey = apiKeyFromEnv
         }
+        def emailFromEnv = getenv('BINTRAY_EMAIL')
+        if (emailFromEnv) {
+            connectionProperties.email = emailFromEnv
+        }
         assert this.connectionProperties
         assert this.connectionProperties.username
         assert this.connectionProperties.apiKey
+        assert this.connectionProperties.email
         bintray = BintrayClient.create(this.connectionProperties.url as String ?: 'https://api.bintray.com', this.connectionProperties.username as String, this.connectionProperties.apiKey as String)
         restClient = new RESTClient('https://api.bintray.com')
         restClient.contentEncoding = ContentEncoding.Type.GZIP

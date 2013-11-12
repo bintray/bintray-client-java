@@ -113,6 +113,14 @@ project(':impl') {
     artifactoryPublish {
         publications(project(':impl').publishing.publications.impl)
     }
+
+    test {
+        testLogging {
+            exceptionFormat "full"
+            events "started", "passed", "skipped", "failed", "standardOut", "standardError"
+            minGranularity 0
+        }
+    }
 }
 
 task wrapper(type: Wrapper) {
