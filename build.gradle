@@ -1,3 +1,5 @@
+import static java.lang.System.getenv
+
 buildscript {
     repositories {
         jcenter()
@@ -14,22 +16,38 @@ allprojects {
     apply plugin: 'artifactory-publish'
 
     group = 'com.jfrog.bintray.client'
+    final env = getenv()
 
-    repositories {
-        jcenter()
-    }
 
-    artifactory {
-        contextUrl = 'https://oss.jfrog.org/artifactory'
-        resolve {
-            repoKey = 'libs-release'
-        }
-        publish {
-            defaults {
-                publishArtifacts = true
+
+    def artifactoryUrl = hasProperty('artifactoryUrl') ? artifactoryUrl : env['ARTIFACTORY_URL']
+    if (artifactoryUrl) {
+        artifactory {
+            contextUrl = artifactoryUrl
+            resolve {
+                repository {
+                    repoKey = 'libs-release'
+                }
+            }
+            publish {
+                repository {
+                    repoKey = 'oss-snapshot-local'   //The Artifactory repository key to publish to
+                    username = hasProperty('artifactoryUsername') ? artifactoryUsername : env['ARTIFACTORY_USERNAME']
+                    //The publisher user name
+                    password = hasProperty('artifactoryPassword') ? artifactoryPassword : env['ARTIFACTORY_PASSWORD']
+                    //The publisher password
+                }
+                defaults {
+                    publishArtifacts = true
+                }
             }
         }
+    } else {
+        repositories {
+            jcenter()
+        }
     }
+
 }
 
 subprojects() {

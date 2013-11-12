@@ -14,10 +14,9 @@ import org.joda.time.format.ISODateTimeFormat
 import spock.lang.Shared
 import spock.lang.Specification
 
+import static java.lang.System.getenv
 import static java.lang.System.setProperty
 import static org.apache.http.HttpStatus.SC_NOT_FOUND
-
-
 /**
  * @author Noam Y. Tenne
  */
@@ -41,7 +40,24 @@ class BintrayClientSpec extends Specification {
 
     def setupSpec() {
         this.connectionProperties = new Properties()
-        bintray = connect(this.connectionProperties)
+        def streamFromProperties = this.class.getResourceAsStream('/bintray-client.properties')
+        if (streamFromProperties) {
+            streamFromProperties.withStream {
+                this.connectionProperties.load(it)
+            }
+        }
+        def usernameFromEnv = getenv('BINTRAY_USERNAME')
+        if (usernameFromEnv) {
+            connectionProperties.username = usernameFromEnv
+        }
+        def apiKeyFromEnv = getenv('BINTRAY_API_KEY')
+        if (apiKeyFromEnv) {
+            connectionProperties.apiKey = apiKeyFromEnv
+        }
+        assert this.connectionProperties
+        assert this.connectionProperties.username
+        assert this.connectionProperties.apiKey
+        bintray = BintrayClient.create(this.connectionProperties.url as String ?: 'https://api.bintray.com', this.connectionProperties.username as String, this.connectionProperties.apiKey as String)
         restClient = new RESTClient('https://api.bintray.com')
         restClient.contentEncoding = ContentEncoding.Type.GZIP
         restClient.auth.basic connectionProperties.username as String, connectionProperties.apiKey as String
@@ -167,15 +183,5 @@ class BintrayClientSpec extends Specification {
             if (e.response.status != SC_NOT_FOUND) //don't care
                 throw e
         }
-    }
-
-    private Bintray connect(Properties connectionProperties = new Properties()) {
-        this.class.getResourceAsStream('/bintray-client.properties').withStream {
-            connectionProperties.load(it)
-        }
-        assert connectionProperties
-        assert connectionProperties.username
-        assert connectionProperties.apiKey
-        BintrayClient.create(connectionProperties.url as String ?: 'https://api.bintray.com', connectionProperties.username as String, connectionProperties.apiKey as String)
     }
 }
