@@ -36,4 +36,6 @@ public interface Pkg {
     DateTime updated();
 
     String linkedToRepo();
+
+    List<String> systemIds();
 }

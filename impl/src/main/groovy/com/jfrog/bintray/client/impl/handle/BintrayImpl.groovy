@@ -55,6 +55,7 @@ class BintrayImpl implements Bintray {
         restClient.post([path: path, body: body]);
     }
 
+    @SuppressWarnings("GroovyAccessibility")
     def patch(String path, Object body) {
         restClient.doRequest(new HTTPBuilder.RequestConfigDelegate([path: path, body: body], new HttpPatch(), null));
     }

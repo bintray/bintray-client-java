@@ -37,12 +37,16 @@ class PackageHandleImpl implements PackageHandle {
 
     Pkg get() {
         def data = bintrayHandle.get("packages/${repositoryHandle.owner().name()}/${repositoryHandle.name()}/$name").data
+        createPackageFromJsonMap(data)
+    }
+
+    private static PackageImpl createPackageFromJsonMap(data) {
         new PackageImpl(name: data.name, repository: data.repository, owner: data.owner, description: data.desc, labels: data.labels,
                 attributeNames: data.attribute_names, rating: data.rating?.toInteger(),
                 ratingCount: data.rating_count?.toInteger(), followersCount: data.followers_count?.toInteger(),
                 created: ISODateTimeFormat.dateTime().parseDateTime(data.created), versions: data.versions,
                 latestVersion: data.latest_version, updated: ISODateTimeFormat.dateTime().parseDateTime(data.updated),
-                linkedToRepo: data.linked_to_repo)
+                linkedToRepo: data.linked_to_repo, systemIds: data.system_ids)
     }
 
     PackageHandle update(PackageDetails packageBuilder) {
@@ -57,15 +61,13 @@ class PackageHandleImpl implements PackageHandle {
         this
     }
 
-    //TODO VersionDetails createPkgWithName(String name) {
-    //TODO so the usage will be Version version = createVersion('1.0').description('blabla').create().get()
     @Override
-    VersionHandle createVersion(VersionDetails versionBuilder) {
-        def requestBody = [name: versionBuilder.name, desc: versionBuilder.description]
-        if (versionBuilder.released) {
-            requestBody.released = ISODateTimeFormat.dateTime().print(versionBuilder.released)
+    VersionHandle createVersion(VersionDetails versionDetails) {
+        def requestBody = [name: versionDetails.name, desc: versionDetails.description]
+        if (versionDetails.released) {
+            requestBody.released = ISODateTimeFormat.dateTime().print(versionDetails.released)
         }
         bintrayHandle.post("packages/${this.repository().owner().name()}/${this.repository().name()}/${this.name()}/versions", requestBody)
-        new VersionHandleImpl(bintrayHandle, this, versionBuilder.name)
+        new VersionHandleImpl(bintrayHandle, this, versionDetails.name)
     }
 }

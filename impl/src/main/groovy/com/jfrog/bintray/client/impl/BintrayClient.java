@@ -26,7 +26,13 @@ public class BintrayClient {
         } catch (URISyntaxException e) {
             throw new IllegalArgumentException("It seems an invalid URI has been provided", e);
         }
-        restClient.getAuth().basic(username, apiKey);
+        if (username != null && apiKey != null) {
+            restClient.getAuth().basic(username, apiKey);
+        }
         return new BintrayImpl(restClient);
+    }
+
+    public static Bintray create() {
+        return create(null, null);
     }
 }

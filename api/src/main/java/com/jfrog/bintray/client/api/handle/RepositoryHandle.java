@@ -1,6 +1,7 @@
 package com.jfrog.bintray.client.api.handle;
 
 import com.jfrog.bintray.client.api.details.PackageDetails;
+import com.jfrog.bintray.client.api.model.Pkg;
 import com.jfrog.bintray.client.api.model.Repository;
 
 /**
@@ -13,4 +14,6 @@ public interface RepositoryHandle extends Handle<Repository> {
     PackageHandle pkg(String name);
 
     PackageHandle createPkg(PackageDetails builder);
+
+    ArtibutesSearchQuery searchForPackage();
 }

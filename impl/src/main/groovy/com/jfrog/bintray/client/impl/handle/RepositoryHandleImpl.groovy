@@ -1,11 +1,14 @@
 package com.jfrog.bintray.client.impl.handle
 
 import com.jfrog.bintray.client.api.details.PackageDetails
+import com.jfrog.bintray.client.api.handle.ArtibutesSearchQuery
 import com.jfrog.bintray.client.api.handle.PackageHandle
 import com.jfrog.bintray.client.api.handle.RepositoryHandle
 import com.jfrog.bintray.client.api.handle.SubjectHandle
+import com.jfrog.bintray.client.api.model.Pkg
 import com.jfrog.bintray.client.api.model.Repository
 import com.jfrog.bintray.client.impl.model.RepositoryImpl
+import groovy.json.JsonBuilder
 import org.joda.time.format.ISODateTimeFormat
 /**
  * @author Noam Y. Tenne
@@ -15,6 +18,7 @@ class RepositoryHandleImpl implements RepositoryHandle {
     private BintrayImpl bintrayHandle
     private SubjectHandleImpl owner
     private String name
+    private List<ArtibutesSearchQuery> queries = []
 
     RepositoryHandleImpl(BintrayImpl bintrayHandle, SubjectHandleImpl owner, String name) {
         this.bintrayHandle = bintrayHandle
@@ -34,13 +38,12 @@ class RepositoryHandleImpl implements RepositoryHandle {
         new PackageHandleImpl(bintrayHandle, this, packageName)
     }
 
-    //TODO PackageDetails createPkgWithName(String name) {
-    //TODO so the usage will be Package pkg = createPackageWithName('bla').description('blabla').create().get()
-    PackageHandle createPkg(PackageDetails packageBuilder) {
-        def requestBody = [name: packageBuilder.name, desc: packageBuilder.description, labels: packageBuilder.labels,
-                licenses: packageBuilder.licenses]
+    @SuppressWarnings("GroovyAccessibility")
+    PackageHandle createPkg(PackageDetails packageDetails) {
+        def requestBody = [name: packageDetails.name, desc: packageDetails.description, labels: packageDetails.labels,
+                licenses: packageDetails.licenses]
         bintrayHandle.post("packages/${this.owner().name()}/${this.name()}", requestBody)
-        new PackageHandleImpl(bintrayHandle, this, packageBuilder.name)
+        new PackageHandleImpl(bintrayHandle, this, packageDetails.name)
     }
 
     Repository get() {
@@ -48,5 +51,19 @@ class RepositoryHandleImpl implements RepositoryHandle {
         new RepositoryImpl(name: data.name, owner: data.owner, desc: data.description, labels: data.labels,
                 created: ISODateTimeFormat.dateTime().parseDateTime(data.created),
                 packageCount: data.package_count.toInteger())
+    }
+
+    ArtibutesSearchQuery searchForPackage() {
+        return new ArtibutesSearchQueryImpl<Pkg>(this, bintrayHandle)
+    }
+
+    @SuppressWarnings("GroovyAccessibility")
+    private List attributeSearch() {
+        Map query = queries.collectEntries { ArtibutesSearchQueryImpl query ->
+            [query.name, query.queryClauses*.clauseValue]
+        }
+        bintrayHandle.post("/search/attributes/${owner().name()}/${name()}", new JsonBuilder([query]).toString()).data.collect{
+            PackageHandleImpl.createPackageFromJsonMap(it)
+        }
     }
 }

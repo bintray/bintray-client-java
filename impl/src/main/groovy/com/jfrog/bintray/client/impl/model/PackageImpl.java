@@ -24,6 +24,7 @@ public class PackageImpl implements Pkg {
     private String latestVersion;
     private DateTime updated;
     private String linkedToRepo;
+    private List<String> systemIds;
 
     public PackageImpl() {
     }
@@ -31,7 +32,7 @@ public class PackageImpl implements Pkg {
     public PackageImpl(String name, String repository, String owner, String description, List<String> labels,
                        List<String> attributeNames, Integer rating, Integer ratingCount, Integer followersCount,
                        DateTime created, List<String> versions, String latestVersion, DateTime updated,
-                       String linkedToRepo) {
+                       String linkedToRepo, List<String> systemIds) {
         this.name = name;
         this.repository = repository;
         this.owner = owner;
@@ -46,6 +47,7 @@ public class PackageImpl implements Pkg {
         this.latestVersion = latestVersion;
         this.updated = updated;
         this.linkedToRepo = linkedToRepo;
+        this.systemIds = systemIds;
     }
 
     public String name() {
@@ -104,6 +106,10 @@ public class PackageImpl implements Pkg {
         return linkedToRepo;
     }
 
+    public List<String> systemIds() {
+        return systemIds;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -138,6 +144,7 @@ public class PackageImpl implements Pkg {
                 ", latestVersion='" + latestVersion + '\'' +
                 ", updated=" + updated +
                 ", linkedToRepo='" + linkedToRepo + '\'' +
+                ", systemIds=" + systemIds +
                 '}';
     }
 }

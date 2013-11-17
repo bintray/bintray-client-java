@@ -10,10 +10,13 @@ import com.timgroup.jgravatar.Gravatar
 import groovyx.net.http.ContentEncoding
 import groovyx.net.http.HttpResponseException
 import groovyx.net.http.RESTClient
+import groovyx.net.http.ResponseParseException
 import org.joda.time.format.ISODateTimeFormat
 import spock.lang.Shared
 import spock.lang.Specification
 
+import static groovyx.net.http.ContentType.BINARY
+import static groovyx.net.http.ContentType.JSON
 import static java.lang.System.getenv
 import static java.lang.System.setProperty
 import static org.apache.http.HttpStatus.SC_NOT_FOUND
@@ -21,9 +24,11 @@ import static org.apache.http.HttpStatus.SC_NOT_FOUND
  * @author Noam Y. Tenne
  */
 class BintrayClientSpec extends Specification {
-    private final static String REPO_NAME = 'generic'
+    private final static String REPO_NAME = 'maven'
     private final static String PKG_NAME = 'bla'
     private static String VERSION = '1.0'
+    public static final String ATTRIBUTE_NAME = 'att1'
+    public static final String ATTRIBUTE_VALUE = 'bla'
     @Shared
     private Properties connectionProperties
     @Shared
@@ -66,7 +71,7 @@ class BintrayClientSpec extends Specification {
         restClient = new RESTClient('https://api.bintray.com')
         restClient.contentEncoding = ContentEncoding.Type.GZIP
         restClient.auth.basic connectionProperties.username as String, connectionProperties.apiKey as String
-        pkgBuilder = new PackageDetails(PKG_NAME).description('blabla').labels(['l1', 'l2']).licenses(['Apache 2'])
+        pkgBuilder = new PackageDetails(PKG_NAME).description('blabla').labels(['l1', 'l2']).licenses(['Apache-2.0'])
         versionBuilder = new VersionDetails(VERSION).description('versionDesc')
         setProperty 'org.apache.commons.logging.Log', 'org.apache.commons.logging.impl.SimpleLog'
         setProperty 'org.apache.commons.logging.simplelog.showdatetime', 'true'
@@ -103,10 +108,17 @@ class BintrayClientSpec extends Specification {
 
     def 'Package created'() {
         setup:
-        def repository = bintray.currentSubject().repository(REPO_NAME)
+        bintray.currentSubject().repository(REPO_NAME).createPkg(pkgBuilder).createVersion(versionBuilder)
 
+        try {
+            restClient.put path: "/content/$connectionProperties.username/$REPO_NAME/$PKG_NAME/$VERSION/com/jfrog/bintray/bintray-test/1.0/bintray-test-1.0.pom;publish=1",
+                    body: new ByteArrayInputStream('bla'.bytes), requestContentType: BINARY, headers: [Authorization: "Basic ${"$connectionProperties.username:$connectionProperties.apiKey".toString().bytes.encodeBase64()}"]
+        } catch (ResponseParseException e) {
+            //Bintray returns null with content type JSON, restClient fails on parsing
+            assert e.message == 'Created'
+        }
         when:
-        Pkg pkg = repository.createPkg(pkgBuilder).get()
+        Pkg pkg = bintray.currentSubject().repository(REPO_NAME).pkg(PKG_NAME).get()
         def actual = restClient.get(path: "/packages/$connectionProperties.username/$REPO_NAME/$PKG_NAME").data
 
         then:
@@ -116,7 +128,6 @@ class BintrayClientSpec extends Specification {
         pkg.description() == actual.desc
         pkg.labels() == actual.labels
         pkg.attributeNames() == actual.attribute_names
-        println pkg
         pkg.rating() == actual.rating?.toInteger()
         pkg.ratingCount() == actual.rating_count?.toInteger()
         pkg.followersCount() == actual.followers_count?.toInteger()
@@ -125,6 +136,7 @@ class BintrayClientSpec extends Specification {
         pkg.latestVersion() == actual.latest_version
         pkg.updated() == ISODateTimeFormat.dateTime().parseDateTime(actual.updated as String)
         pkg.linkedToRepo() == actual.linked_to_repo
+        pkg.systemIds() == actual.system_ids
     }
 
     def 'Version created'() {
@@ -153,6 +165,43 @@ class BintrayClientSpec extends Specification {
         if (actual.released) {
             version.released() == ISODateTimeFormat.dateTime().parseDateTime(actual.released as String)
         }
+    }
+
+    def 'search by attributes'() {
+        setup:
+        def repo = bintray.currentSubject().repository(REPO_NAME)
+
+        repo.createPkg(pkgBuilder)
+        def attributesQuery = "[{\"name\": \"$ATTRIBUTE_NAME\", \"values\" : [\"$ATTRIBUTE_VALUE\"], \"type\": \"string\"}]"
+        restClient.post(path: "/packages/$connectionProperties.username/$REPO_NAME/$PKG_NAME/attributes",
+                contentType: JSON,
+                body: attributesQuery)
+
+        when:
+        /* the following code is analogous to this rest query payload:
+        [
+        {"att1" : ["val1", "val2"]}, //att1 value is either val1 or val2 (att1 is a scalar)
+        {"att2": "[1,3]"}, //att2 value is equal to or greater than 1 and equal to or smaller than 3
+        {"att3": "[,3]"}, //att3 value is equals to or smaller than 3
+        {"att4": "[,3["}, //att3 value is smaller than 3
+        {"att5": "]2011-07-14T19:43:37+0100,]"}, //att5 value  is after 2011-07-14T19:43:37+0100 (dates are defined in ISO8601 format)
+        ]
+         */
+//        def results = repo.searchForPackage().byAttributeName('att1').in('val1', 'val2').and().
+//                byAttributeName('att2').greaterOrEqualsTo(1).lessOrEquals(3).and().
+//                byAttributeName('att3').lessOrEquals(3).and().
+//                byAttributeName('att4').lessThan(3).and().
+//                byAttributeName('att5').after(new DateTime(2011, 7, 14, 19, 43, 37, DateTimeZone.forOffsetHours(1))).and().
+//                byAttributeName('att6').equals(3).search()
+
+        List<Pkg> results = repo.searchForPackage().byAttributeName(ATTRIBUTE_NAME).equals(ATTRIBUTE_VALUE).search()
+
+        then:
+        results
+        results.size() == 1
+        Pkg pkg = results[0]
+        pkg.name() == PKG_NAME
+        pkg.attributeNames()[0] == ATTRIBUTE_NAME
     }
 
     def '404s'() {
