@@ -1,3 +1,5 @@
+import static java.lang.System.getenv
+
 buildscript {
     repositories {
         jcenter()
@@ -14,22 +16,38 @@ allprojects {
     apply plugin: 'artifactory-publish'
 
     group = 'com.jfrog.bintray.client'
+    final env = getenv()
 
-    repositories {
-        jcenter()
-    }
 
-    artifactory {
-        contextUrl = 'https://oss.jfrog.org/artifactory'
-        resolve {
-            repoKey = 'libs-release'
-        }
-        publish {
-            defaults {
-                publishArtifacts = true
+
+    def artifactoryUrl = hasProperty('artifactoryUrl') ? artifactoryUrl : env['ARTIFACTORY_URL']
+    if (artifactoryUrl) {
+        artifactory {
+            contextUrl = artifactoryUrl
+            resolve {
+                repository {
+                    repoKey = 'libs-release'
+                }
+            }
+            publish {
+                repository {
+                    repoKey = 'oss-snapshot-local'   //The Artifactory repository key to publish to
+                    username = hasProperty('artifactoryUsername') ? artifactoryUsername : env['ARTIFACTORY_USERNAME']
+                    //The publisher user name
+                    password = hasProperty('artifactoryPassword') ? artifactoryPassword : env['ARTIFACTORY_PASSWORD']
+                    //The publisher password
+                }
+                defaults {
+                    publishArtifacts = true
+                }
             }
         }
+    } else {
+        repositories {
+            jcenter()
+        }
     }
+
 }
 
 subprojects() {
@@ -75,6 +93,7 @@ project(':impl') {
         compile 'org.codehaus.groovy:groovy-all:1.8.6'
         compile 'org.codehaus.groovy.modules.http-builder:http-builder:0.6'
         testCompile 'org.spockframework:spock-core:0.7-groovy-1.8'
+        testCompile group: 'com.timgroup', name: 'jgravatar', version: '1.0'
     }
 
     publishing {
@@ -93,6 +112,14 @@ project(':impl') {
 
     artifactoryPublish {
         publications(project(':impl').publishing.publications.impl)
+    }
+
+    test {
+        testLogging {
+            exceptionFormat "full"
+            events "started", "passed", "skipped", "failed", "standardOut", "standardError"
+            minGranularity 0
+        }
     }
 }
 

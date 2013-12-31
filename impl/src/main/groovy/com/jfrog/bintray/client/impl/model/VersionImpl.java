@@ -83,4 +83,38 @@ public class VersionImpl implements Version {
     public int ordinal() {
         return ordinal;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        VersionImpl version = (VersionImpl) o;
+
+        if (!name.equals(version.name)) return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        return name.hashCode();
+    }
+
+    @Override
+    public String toString() {
+        return "Version{" +
+                "name='" + name + '\'' +
+                ", description='" + description + '\'' +
+                ", pkg='" + pkg + '\'' +
+                ", repository='" + repository + '\'' +
+                ", owner='" + owner + '\'' +
+                ", labels=" + labels +
+                ", attributeNames=" + attributeNames +
+                ", created=" + created +
+                ", updated=" + updated +
+                ", released=" + released +
+                ", ordinal=" + ordinal +
+                '}';
+    }
 }

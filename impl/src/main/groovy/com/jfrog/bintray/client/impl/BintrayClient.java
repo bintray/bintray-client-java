@@ -12,8 +12,8 @@ import java.net.URISyntaxException;
  */
 public class BintrayClient {
 
-    public static Bintray create(String username, String password) {
-        return create("https://api.bintray.com", username, password);
+    public static Bintray create(String username, String apiKey) {
+        return create("https://api.bintray.com", username, apiKey);
     }
 
     public static Bintray create(String url, String username, String apiKey) {
@@ -26,7 +26,13 @@ public class BintrayClient {
         } catch (URISyntaxException e) {
             throw new IllegalArgumentException("It seems an invalid URI has been provided", e);
         }
-        restClient.getAuth().basic(username, apiKey);
+        if (username != null && apiKey != null) {
+            restClient.getAuth().basic(username, apiKey);
+        }
         return new BintrayImpl(restClient);
+    }
+
+    public static Bintray create() {
+        return create(null, null);
     }
 }

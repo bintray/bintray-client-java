@@ -32,15 +32,15 @@ class BintrayImpl implements Bintray {
     }
 
     RepositoryHandle repository(String repositoryPath) {
-        return null
+        throw new UnsupportedOperationException('TODO implement full path resolution that receives "/subject/repo/"')
     }
 
     PackageHandle pkg(String packagePath) {
-        return null
+        throw new UnsupportedOperationException('TODO implement full path resolution that receives "/subject/repo/pkg"')
     }
 
     VersionHandle version(String versionPath) {
-        return null
+        throw new UnsupportedOperationException('TODO implement full path resolution that receives "/subject/repo/pkg/version"')
     }
 
     void close() {
@@ -55,6 +55,7 @@ class BintrayImpl implements Bintray {
         restClient.post([path: path, body: body]);
     }
 
+    @SuppressWarnings("GroovyAccessibility")
     def patch(String path, Object body) {
         restClient.doRequest(new HTTPBuilder.RequestConfigDelegate([path: path, body: body], new HttpPatch(), null));
     }

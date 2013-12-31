@@ -21,7 +21,7 @@ public interface Pkg {
 
     List<String> attributeNames();
 
-    int rating();
+    Integer rating();
 
     int ratingCount();
 
@@ -36,4 +36,6 @@ public interface Pkg {
     DateTime updated();
 
     String linkedToRepo();
+
+    List<String> systemIds();
 }

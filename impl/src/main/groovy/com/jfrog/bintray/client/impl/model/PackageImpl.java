@@ -17,13 +17,14 @@ public class PackageImpl implements Pkg {
     private List<String> labels;
     private List<String> attributeNames;
     private Integer rating;
-    private Integer ratingCount;
-    private Integer followersCount;
+    private int ratingCount;
+    private int followersCount;
     private DateTime created;
     private List<String> versions;
     private String latestVersion;
     private DateTime updated;
     private String linkedToRepo;
+    private List<String> systemIds;
 
     public PackageImpl() {
     }
@@ -31,7 +32,7 @@ public class PackageImpl implements Pkg {
     public PackageImpl(String name, String repository, String owner, String description, List<String> labels,
                        List<String> attributeNames, Integer rating, Integer ratingCount, Integer followersCount,
                        DateTime created, List<String> versions, String latestVersion, DateTime updated,
-                       String linkedToRepo) {
+                       String linkedToRepo, List<String> systemIds) {
         this.name = name;
         this.repository = repository;
         this.owner = owner;
@@ -46,6 +47,7 @@ public class PackageImpl implements Pkg {
         this.latestVersion = latestVersion;
         this.updated = updated;
         this.linkedToRepo = linkedToRepo;
+        this.systemIds = systemIds;
     }
 
     public String name() {
@@ -72,7 +74,7 @@ public class PackageImpl implements Pkg {
         return attributeNames;
     }
 
-    public int rating() {
+    public Integer rating() {
         return rating;
     }
 
@@ -102,5 +104,47 @@ public class PackageImpl implements Pkg {
 
     public String linkedToRepo() {
         return linkedToRepo;
+    }
+
+    public List<String> systemIds() {
+        return systemIds;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        PackageImpl aPackage = (PackageImpl) o;
+
+        if (!name.equals(aPackage.name)) return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        return name.hashCode();
+    }
+
+    @Override
+    public String toString() {
+        return "Package{" +
+                "name='" + name + '\'' +
+                ", repository='" + repository + '\'' +
+                ", owner='" + owner + '\'' +
+                ", description='" + description + '\'' +
+                ", labels=" + labels +
+                ", attributeNames=" + attributeNames +
+                ", rating=" + rating +
+                ", ratingCount=" + ratingCount +
+                ", followersCount=" + followersCount +
+                ", created=" + created +
+                ", versions=" + versions +
+                ", latestVersion='" + latestVersion + '\'' +
+                ", updated=" + updated +
+                ", linkedToRepo='" + linkedToRepo + '\'' +
+                ", systemIds=" + systemIds +
+                '}';
     }
 }
