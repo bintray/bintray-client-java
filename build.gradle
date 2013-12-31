@@ -56,7 +56,7 @@ project(':api') {
 
                 from components.java
                 artifact sourceJar {
-                    classifier 'source'
+                    classifier 'sources'
                 }
             }
         }
@@ -85,7 +85,7 @@ project(':impl') {
 
                 from components.java
                 artifact sourceJar {
-                    classifier 'source'
+                    classifier 'sources'
                 }
             }
         }
