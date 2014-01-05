@@ -1,5 +1,6 @@
 package com.jfrog.bintray.client.impl
 
+import com.jfrog.bintray.client.BintrayCallException
 import com.jfrog.bintray.client.api.details.PackageDetails
 import com.jfrog.bintray.client.api.details.VersionDetails
 import com.jfrog.bintray.client.api.handle.Bintray
@@ -20,13 +21,14 @@ import static groovyx.net.http.ContentType.JSON
 import static java.lang.System.getenv
 import static java.lang.System.setProperty
 import static org.apache.http.HttpStatus.SC_NOT_FOUND
+
 /**
  * @author Noam Y. Tenne
  */
 class BintrayClientSpec extends Specification {
     private final static String REPO_NAME = 'maven'
     private final static String PKG_NAME = 'bla'
-    private static String VERSION = '1.0'
+    private final static String VERSION = '1.0'
     public static final String ATTRIBUTE_NAME = 'att1'
     public static final String ATTRIBUTE_VALUE = 'bla'
     @Shared
@@ -71,7 +73,7 @@ class BintrayClientSpec extends Specification {
         restClient = new RESTClient('https://api.bintray.com')
         restClient.contentEncoding = ContentEncoding.Type.GZIP
         restClient.auth.basic connectionProperties.username as String, connectionProperties.apiKey as String
-        pkgBuilder = new PackageDetails(PKG_NAME).description('blabla').labels(['l1', 'l2']).licenses(['Apache-2.0'])
+        pkgBuilder = new PackageDetails(PKG_NAME).description('bla-bla').labels(['l1', 'l2']).licenses(['Apache-2.0'])
         versionBuilder = new VersionDetails(VERSION).description('versionDesc')
         setProperty 'org.apache.commons.logging.Log', 'org.apache.commons.logging.impl.SimpleLog'
         setProperty 'org.apache.commons.logging.simplelog.showdatetime', 'true'
@@ -87,11 +89,11 @@ class BintrayClientSpec extends Specification {
         Gravatar gravatar = new Gravatar().setSize(140)
 
         when:
-        Subject clienttests = bintray.currentSubject().get()
+        Subject clientTests = bintray.currentSubject().get()
 
         then:
-        clienttests.name == connectionProperties.username
-        new URL(clienttests.gravatarId).bytes == gravatar.download(connectionProperties.email as String)
+        clientTests.name == connectionProperties.username
+        new URL(clientTests.gravatarId).bytes == gravatar.download(connectionProperties.email as String)
     }
 
     def 'Default Repos exist'(String repoName, def _) {
@@ -204,11 +206,23 @@ class BintrayClientSpec extends Specification {
         pkg.attributeNames()[0] == ATTRIBUTE_NAME
     }
 
+    def 'on error response is returned without parsing'() {
+        setup:
+        Bintray wrongBintray = BintrayClient.create('https://api.bintray.com/bla', this.connectionProperties.username as String, this.connectionProperties.apiKey as String)
+        when:
+        wrongBintray.subject('bla').get()
+        then:
+        BintrayCallException e = thrown()
+        e.statusCode == SC_NOT_FOUND
+        e.reason == 'Not Found'
+        e.message.toLowerCase().contains('<body>')
+    }
+
     def '404s'() {
         when:
         bintray.subject('bla').get()
         then:
-        HttpResponseException e = thrown()
+        BintrayCallException e = thrown()
         e.statusCode == SC_NOT_FOUND
         and:
         when:

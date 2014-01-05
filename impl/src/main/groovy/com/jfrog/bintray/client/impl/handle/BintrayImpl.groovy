@@ -1,11 +1,15 @@
 package com.jfrog.bintray.client.impl.handle
 
+import com.jfrog.bintray.client.BintrayCallException
 import com.jfrog.bintray.client.api.handle.*
 import groovyx.net.http.ContentType
 import groovyx.net.http.HTTPBuilder
+import groovyx.net.http.HttpResponseDecorator
+import groovyx.net.http.ParserRegistry
 import groovyx.net.http.RESTClient
 import org.apache.http.auth.AuthScope
 import org.apache.http.client.methods.HttpPatch
+
 /**
  * @author Noam Y. Tenne
  */
@@ -15,6 +19,11 @@ class BintrayImpl implements Bintray {
 
     BintrayImpl(RESTClient restClient) {
         this.restClient = restClient
+        restClient.handler.failure = {HttpResponseDecorator resp ->
+            InputStreamReader reader = new InputStreamReader(resp.getEntity().getContent(),
+                    ParserRegistry.getCharset(resp))
+            throw new BintrayCallException(reader.text, resp.statusLine.statusCode, resp.statusLine.reasonPhrase)
+        }
     }
 
     String uri() {

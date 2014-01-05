@@ -6,7 +6,7 @@ buildscript {
     }
 
     dependencies {
-        classpath 'org.jfrog.buildinfo:build-info-extractor-gradle:2.1.0'
+        classpath 'org.jfrog.buildinfo:build-info-extractor-gradle:2.2.0'
     }
 }
 
@@ -20,7 +20,7 @@ allprojects {
 
 
 
-    def artifactoryUrl = hasProperty('artifactoryUrl') ? artifactoryUrl : env['ARTIFACTORY_URL']
+    def artifactoryUrl = 'https://oss.jfrog.org'
     if (artifactoryUrl) {
         artifactory {
             contextUrl = artifactoryUrl
@@ -29,13 +29,12 @@ allprojects {
                     repoKey = 'libs-release'
                 }
             }
+
             publish {
                 repository {
                     repoKey = 'oss-snapshot-local'   //The Artifactory repository key to publish to
-                    username = hasProperty('artifactoryUsername') ? artifactoryUsername : env['ARTIFACTORY_USERNAME']
-                    //The publisher user name
-                    password = hasProperty('artifactoryPassword') ? artifactoryPassword : env['ARTIFACTORY_PASSWORD']
-                    //The publisher password
+                    username = project.hasProperty('bintrayUser') ? project.bintrayUser : getenv()['BINTRAY_USER']
+                    password = project.hasProperty('bintrayKey') ? project.bintrayKey : getenv()['BINTRAY_KEY']
                 }
                 defaults {
                     publishArtifacts = true
@@ -124,7 +123,7 @@ project(':impl') {
 }
 
 task wrapper(type: Wrapper) {
-    gradleVersion = '1.8'
+    gradleVersion = '1.10'
 }
 
 idea {
