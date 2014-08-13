@@ -19,8 +19,11 @@ import spock.lang.Specification
 import static groovyx.net.http.ContentType.BINARY
 import static groovyx.net.http.ContentType.JSON
 import static java.lang.System.getenv
-import static java.lang.System.setProperty
 import static org.apache.http.HttpStatus.SC_NOT_FOUND
+import static org.apache.http.auth.params.AuthPNames.TARGET_AUTH_PREF
+import static org.apache.http.client.params.AuthPolicy.BASIC
+import static org.apache.http.client.params.CookiePolicy.IGNORE_COOKIES
+import static org.apache.http.client.params.HttpClientParams.setCookiePolicy
 
 /**
  * @author Noam Y. Tenne
@@ -71,15 +74,13 @@ class BintrayClientSpec extends Specification {
         assert this.connectionProperties.email
         bintray = BintrayClient.create(this.connectionProperties.url as String ?: 'https://api.bintray.com', this.connectionProperties.username as String, this.connectionProperties.apiKey as String)
         restClient = new RESTClient('https://api.bintray.com')
+        def params = restClient.client.getParams()
+        setCookiePolicy params, IGNORE_COOKIES
+        params.setParameter(TARGET_AUTH_PREF, [BASIC])
         restClient.contentEncoding = ContentEncoding.Type.GZIP
         restClient.auth.basic connectionProperties.username as String, connectionProperties.apiKey as String
         pkgBuilder = new PackageDetails(PKG_NAME).description('bla-bla').labels(['l1', 'l2']).licenses(['Apache-2.0'])
         versionBuilder = new VersionDetails(VERSION).description('versionDesc')
-        setProperty 'org.apache.commons.logging.Log', 'org.apache.commons.logging.impl.SimpleLog'
-        setProperty 'org.apache.commons.logging.simplelog.showdatetime', 'true'
-        setProperty 'org.apache.commons.logging.simplelog.log.org.apache.http', 'DEBUG'
-        setProperty 'org.apache.commons.logging.simplelog.log.org.apache.http.wire', 'ERROR'
-
     }
 
     def 'Connection is successful and subject has correct username and avatar'() {
@@ -225,6 +226,7 @@ class BintrayClientSpec extends Specification {
         BintrayCallException e = thrown()
         e.statusCode == SC_NOT_FOUND
     }
+
     def 'wrong repository gives 404'() {
         when:
         bintray.currentSubject().repository('bla').get()
@@ -232,6 +234,7 @@ class BintrayClientSpec extends Specification {
         BintrayCallException e = thrown()
         e.statusCode == SC_NOT_FOUND
     }
+
     def 'wrong package gives 404'() {
         when:
         bintray.currentSubject().repository(REPO_NAME).pkg('bla').get()
@@ -239,6 +242,7 @@ class BintrayClientSpec extends Specification {
         BintrayCallException e = thrown()
         e.statusCode == SC_NOT_FOUND
     }
+
     def 'wrong version gives 404'() {
         when:
         bintray.currentSubject().repository(REPO_NAME).pkg(PKG_NAME).version('3434').get()

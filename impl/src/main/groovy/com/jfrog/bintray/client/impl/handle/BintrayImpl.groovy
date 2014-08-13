@@ -24,7 +24,6 @@ class BintrayImpl implements Bintray {
 
     BintrayImpl(RESTClient restClient) {
         this.restClient = restClient
-        setCookiePolicy(restClient.client.getParams(), CookiePolicy.IGNORE_COOKIES)
         restClient.handler.failure = {HttpResponseDecorator resp ->
             InputStreamReader reader = new InputStreamReader(resp.getEntity().getContent(),
                     ParserRegistry.getCharset(resp))
