@@ -218,29 +218,32 @@ class BintrayClientSpec extends Specification {
         e.message.toLowerCase().contains('<body>')
     }
 
-    def '404s'() {
+    def 'wrong subject gives 404'() {
         when:
         bintray.subject('bla').get()
         then:
         BintrayCallException e = thrown()
         e.statusCode == SC_NOT_FOUND
-        and:
+    }
+    def 'wrong repository gives 404'() {
         when:
         bintray.currentSubject().repository('bla').get()
         then:
-        e = thrown()
+        BintrayCallException e = thrown()
         e.statusCode == SC_NOT_FOUND
-        and:
+    }
+    def 'wrong package gives 404'() {
         when:
         bintray.currentSubject().repository(REPO_NAME).pkg('bla').get()
         then:
-        e = thrown()
+        BintrayCallException e = thrown()
         e.statusCode == SC_NOT_FOUND
-        and:
+    }
+    def 'wrong version gives 404'() {
         when:
         bintray.currentSubject().repository(REPO_NAME).pkg(PKG_NAME).version('3434').get()
         then:
-        e = thrown()
+        BintrayCallException e = thrown()
         e.statusCode == SC_NOT_FOUND
     }
 

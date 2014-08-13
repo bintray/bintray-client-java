@@ -6,48 +6,39 @@ buildscript {
     }
 
     dependencies {
-        classpath 'org.jfrog.buildinfo:build-info-extractor-gradle:2.2.0'
+        classpath(group: 'org.jfrog.buildinfo', name: 'build-info-extractor-gradle', version: '3.0.1')
     }
 }
 
 allprojects {
     apply plugin: 'idea'
     apply plugin: 'maven-publish'
-    apply plugin: 'artifactory-publish'
+    apply plugin: 'com.jfrog.artifactory'
 
     group = 'com.jfrog.bintray.client'
-    final env = getenv()
 
-
-
-    def artifactoryUrl = 'https://oss.jfrog.org'
-    if (artifactoryUrl) {
-        artifactory {
-            contextUrl = artifactoryUrl
-            resolve {
-                repository {
-                    repoKey = 'libs-release'
-                }
-            }
-
-            publish {
-                repository {
-                    repoKey = 'oss-snapshot-local'   //The Artifactory repository key to publish to
-                    username = project.hasProperty('bintrayUser') ? project.bintrayUser : getenv()['BINTRAY_USER']
-                    password = project.hasProperty('bintrayKey') ? project.bintrayKey : getenv()['BINTRAY_KEY']
-                }
-                defaults {
-                    publishArtifacts = true
-                }
+    artifactory {
+        contextUrl = 'https://oss.jfrog.org'
+        resolve {
+            repository {
+                repoKey = 'libs-release'
             }
         }
-    } else {
-        repositories {
-            jcenter()
+
+        publish {
+            repository {
+                repoKey = 'oss-snapshot-local'   //The Artifactory repository key to publish to
+                username = project.hasProperty('bintrayUser') ? project.bintrayUser : getenv()['BINTRAY_USER']
+                password = project.hasProperty('bintrayKey') ? project.bintrayKey : getenv()['BINTRAY_KEY']
+            }
+            defaults {
+                publications 'main'
+            }
         }
     }
-
 }
+
+artifactoryPublish.skip = true
 
 subprojects() {
     apply plugin: 'java'
@@ -59,28 +50,86 @@ subprojects() {
         compile 'joda-time:joda-time:2.3'
     }
 
-    task sourceJar(type: Jar) {
-        from sourceSets.main.allJava
+    task sourcesJar(type: Jar) {
+        from sourceSets.main.allSource
+        classifier = 'sources'
     }
-}
 
-project(':api') {
-    publishing {
-        publications {
-            api(MavenPublication) {
+    task javadocJar(type: Jar, dependsOn: javadoc) {
+        classifier = 'javadoc'
+        from javadoc.destinationDir
+    }
 
-                artifactId 'bintray-client-java-api'
+    task testResultsZip(type: Zip) {
+        classifier = 'testreports'
+        from testReportDir
 
-                from components.java
-                artifact sourceJar {
-                    classifier 'sources'
-                }
-            }
+    }
+
+    test {
+        finalizedBy(testResultsZip)
+        jvmArgs (['-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.SimpleLog',
+                '-Dorg.apache.commons.logging.simplelog.showdatetime=true',
+                '-Dorg.apache.commons.logging.simplelog.log.org.apache.http=DEBUG',
+                '-Dorg.apache.commons.logging.simplelog.log.org.apache.http.wire=ERROR'])
+        testLogging {
+            exceptionFormat "full"
+            events "started", "passed", "skipped", "failed", "standardOut", "standardError"
+            minGranularity 0
         }
     }
 
-    artifactoryPublish {
-        publications(project(':api').publishing.publications.api)
+
+    publishing {
+        publications {
+            main(MavenPublication) {
+                from components.java
+                artifact sourcesJar
+                artifact javadocJar
+                if (testResultsZip.archivePath.exists()) {
+                    artifact testResultsZip
+                }
+
+                pom.withXml {
+                    asNode().with {
+                        appendNode('packaging', 'jar')
+                        appendNode('name', 'Bintray Java client')
+                        appendNode('description', 'Java client for working with Bintray')
+                        appendNode('url', 'https://github.com/bintray/bintray-client-java')
+                        appendNode('licenses').with {
+                            appendNode('license').with {
+                                appendNode('name', 'The Apache Software License, Version 2.0')
+                                appendNode('url', 'http://www.apache.org/licenses/LICENSE-2.0')
+                            }
+                        }
+                        appendNode('developers').with {
+                            appendNode('developer').with {
+                                appendNode('id', 'NoamTenne')
+                                appendNode('name', 'Noam Tenne')
+                                appendNode('email', 'NoamT@jfrog.com')
+                            }
+                            appendNode('developer').with {
+                                appendNode('id', 'jbaruch')
+                                appendNode('name', 'Baruch Sadogursky')
+                                appendNode('email', 'jbaruch@jfrog.com')
+                            }
+                        }
+                        appendNode('scm').with {
+                            appendNode('connection', 'git@github.com:JFrogDev/bintray/bintray-client-java.git')
+                            appendNode('developerConnection', 'git@github.com:bintray/bintray-client-java.git')
+                            appendNode('url', 'https://github.com/bintray/bintray-client-java')
+                        }
+                    }
+                    asNode().dependencies.'*'.findAll() {
+                        it.scope.text() == 'runtime' && project.configurations.compile.allDependencies.find { dep ->
+                            dep.name == it.artifactId.text()
+                        }
+                    }.each() {
+                        it.scope*.value = 'compile'
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -89,41 +138,18 @@ project(':impl') {
 
     dependencies {
         compile project(':api')
-        compile 'org.codehaus.groovy:groovy-all:1.8.6'
-        compile 'org.codehaus.groovy.modules.http-builder:http-builder:0.6'
-        testCompile 'org.spockframework:spock-core:0.7-groovy-1.8'
+        compile localGroovy()
+        compile 'org.codehaus.groovy.modules.http-builder:http-builder:0.7.1'
+        testCompile("org.spockframework:spock-core:0.7-groovy-2.0") {
+            exclude module: 'groovy-all'
+            //localGroovy and spock groovy will probably conflict. Both are 2.x, we're good.
+        }
         testCompile group: 'com.timgroup', name: 'jgravatar', version: '1.0'
-    }
-
-    publishing {
-        publications {
-            impl(MavenPublication) {
-
-                artifactId 'bintray-client-java-impl'
-
-                from components.java
-                artifact sourceJar {
-                    classifier 'sources'
-                }
-            }
-        }
-    }
-
-    artifactoryPublish {
-        publications(project(':impl').publishing.publications.impl)
-    }
-
-    test {
-        testLogging {
-            exceptionFormat "full"
-            events "started", "passed", "skipped", "failed", "standardOut", "standardError"
-            minGranularity 0
-        }
     }
 }
 
 task wrapper(type: Wrapper) {
-    gradleVersion = '1.10'
+    gradleVersion = '2.0'
 }
 
 idea {

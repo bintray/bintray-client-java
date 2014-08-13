@@ -9,6 +9,11 @@ import groovyx.net.http.ParserRegistry
 import groovyx.net.http.RESTClient
 import org.apache.http.auth.AuthScope
 import org.apache.http.client.methods.HttpPatch
+import org.apache.http.client.params.CookiePolicy
+import org.apache.http.client.params.HttpClientParams
+import org.apache.http.impl.client.DefaultHttpClient
+
+import static org.apache.http.client.params.HttpClientParams.setCookiePolicy
 
 /**
  * @author Noam Y. Tenne
@@ -19,6 +24,7 @@ class BintrayImpl implements Bintray {
 
     BintrayImpl(RESTClient restClient) {
         this.restClient = restClient
+        setCookiePolicy(restClient.client.getParams(), CookiePolicy.IGNORE_COOKIES)
         restClient.handler.failure = {HttpResponseDecorator resp ->
             InputStreamReader reader = new InputStreamReader(resp.getEntity().getContent(),
                     ParserRegistry.getCharset(resp))
@@ -31,8 +37,12 @@ class BintrayImpl implements Bintray {
     }
 
     SubjectHandle currentSubject() {
+        def credentials = restClient.auth.builder.client.credentialsProvider.getCredentials(AuthScope.ANY)
+        if(!credentials){
+            throw new IllegalStateException('Can\'t determine current user, did you use BintrayClient.create() without parameters?')
+        }
         String authenticatingSubject =
-                restClient.auth.builder.client.credentialsProvider.getCredentials(AuthScope.ANY).userPrincipal.name
+                credentials.userPrincipal.name
         subject(authenticatingSubject)
     }
 
