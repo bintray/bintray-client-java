@@ -10,6 +10,7 @@ import com.jfrog.bintray.client.api.model.Repository
 import com.jfrog.bintray.client.impl.model.RepositoryImpl
 import groovy.json.JsonBuilder
 import org.joda.time.format.ISODateTimeFormat
+
 /**
  * @author Noam Y. Tenne
  */
@@ -40,10 +41,20 @@ class RepositoryHandleImpl implements RepositoryHandle {
 
     @SuppressWarnings("GroovyAccessibility")
     PackageHandle createPkg(PackageDetails packageDetails) {
-        def requestBody = [name: packageDetails.name, desc: packageDetails.description, labels: packageDetails.labels,
-                licenses: packageDetails.licenses]
-        bintrayHandle.post("packages/${this.owner().name()}/${this.name()}", requestBody)
+        bintrayHandle.post("packages/${this.owner().name()}/${this.name()}", jsonFromPackageDetails(packageDetails))
         new PackageHandleImpl(bintrayHandle, this, packageDetails.name)
+    }
+
+    LinkedHashMap<String, Object> jsonFromPackageDetails(PackageDetails packageDetails) {
+        [name                   : packageDetails.name,
+         desc                   : packageDetails.description,
+         labels                 : packageDetails.labels,
+         licenses               : packageDetails.licenses,
+         vcs_url                : packageDetails.vcsUrl,
+         website_url            : packageDetails.websiteUrl,
+         issue_tracker_url      : packageDetails.issueTrackerUrl,
+         public_download_numbers: packageDetails.publicDownloadNumbers
+        ]
     }
 
     Repository get() {
@@ -62,7 +73,7 @@ class RepositoryHandleImpl implements RepositoryHandle {
         Map query = queries.collectEntries { ArtibutesSearchQueryImpl query ->
             [query.name, query.queryClauses*.clauseValue]
         }
-        bintrayHandle.post("/search/attributes/${owner().name()}/${name()}", new JsonBuilder([query]).toString()).data.collect{
+        bintrayHandle.post("/search/attributes/${owner().name()}/${name()}", new JsonBuilder([query]).toString()).data.collect {
             PackageHandleImpl.createPackageFromJsonMap(it)
         }
     }

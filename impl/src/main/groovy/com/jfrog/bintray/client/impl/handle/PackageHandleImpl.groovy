@@ -50,9 +50,7 @@ class PackageHandleImpl implements PackageHandle {
     }
 
     PackageHandle update(PackageDetails packageBuilder) {
-        def requestBody = [desc: packageBuilder.description, labels: packageBuilder.labels,
-                licenses: packageBuilder.licenses]
-        bintrayHandle.patch("packages/${repositoryHandle.owner().name()}/${repositoryHandle.name()}/$name", requestBody)
+        bintrayHandle.patch("packages/${repositoryHandle.owner().name()}/${repositoryHandle.name()}/$name", repositoryHandle.jsonFromPackageDetails(packageBuilder))
         this
     }
 
