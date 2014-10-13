@@ -133,11 +133,11 @@ subprojects() {
     }
 }
 
-project(':impl') {
+project(':bintray-client-java-service') {
     apply plugin: 'groovy'
 
     dependencies {
-        compile project(':api')
+        compile project(':bintray-client-java-api')
         compile localGroovy()
         compile 'org.codehaus.groovy.modules.http-builder:http-builder:0.7.1'
         testCompile("org.spockframework:spock-core:0.7-groovy-2.0") {
@@ -149,7 +149,7 @@ project(':impl') {
 }
 
 task wrapper(type: Wrapper) {
-    gradleVersion = '2.0'
+    gradleVersion = '2.1'
 }
 
 idea {

@@ -1,6 +1,5 @@
 *.class
 impl\src\test\resources\bintray-client.properties
-*.class
 Recursive
 target
 build
