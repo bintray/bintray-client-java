@@ -3,6 +3,7 @@ package com.jfrog.bintray.client.impl.handle
 import com.jfrog.bintray.client.api.details.VersionDetails
 import com.jfrog.bintray.client.api.handle.PackageHandle
 import com.jfrog.bintray.client.api.handle.VersionHandle
+import com.jfrog.bintray.client.api.model.Attribute
 import com.jfrog.bintray.client.api.model.Version
 import com.jfrog.bintray.client.impl.model.VersionImpl
 import org.joda.time.format.ISODateTimeFormat
@@ -59,4 +60,11 @@ class VersionHandleImpl implements VersionHandle {
         bintrayHandle.delete("packages/${packageHandle.repository().owner().name()}/${packageHandle.repository().name()}/${packageHandle.name()}/versions/$name")
         this
     }
+
+    @Override
+    VersionHandle setAttributes(List<Attribute> attributes) {
+        bintrayHandle.post("packages/${packageHandle.repository().owner().name()}/${packageHandle.repository().name()}/${packageHandle.name()}/versions/$name/attributes", packageHandle.createJsonFromAttributes(attributes))
+        this
+    }
+
 }

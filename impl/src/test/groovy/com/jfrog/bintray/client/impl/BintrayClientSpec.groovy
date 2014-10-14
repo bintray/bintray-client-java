@@ -4,9 +4,11 @@ import com.jfrog.bintray.client.BintrayCallException
 import com.jfrog.bintray.client.api.details.PackageDetails
 import com.jfrog.bintray.client.api.details.VersionDetails
 import com.jfrog.bintray.client.api.handle.Bintray
+import com.jfrog.bintray.client.api.model.Attribute
 import com.jfrog.bintray.client.api.model.Pkg
 import com.jfrog.bintray.client.api.model.Subject
 import com.jfrog.bintray.client.api.model.Version
+import com.jfrog.bintray.client.impl.model.AttributeImpl
 import com.timgroup.jgravatar.Gravatar
 import groovyx.net.http.ContentEncoding
 import groovyx.net.http.HttpResponseException
@@ -44,6 +46,13 @@ class BintrayClientSpec extends Specification {
     private PackageDetails pkgBuilder
     @Shared
     private VersionDetails versionBuilder
+
+    private ArrayList<AttributeImpl<String>> attributes = [
+            new AttributeImpl<String>('a', Attribute.Type.STRING, "ay1", "ay2"),
+            new AttributeImpl<String>('b', 'b', 'e'),
+            new AttributeImpl<String>('c', 'cee')]
+
+    private String expectedAttributes = '[[name:a, type:string, values:[ay1, ay2]], [name:c, type:string, values:[cee]], [name:b, type:string, values:[e, b]]]'
 
     void setup() {
     }
@@ -205,6 +214,39 @@ class BintrayClientSpec extends Specification {
         Pkg pkg = results[0]
         pkg.name() == PKG_NAME
         pkg.attributeNames()[0] == ATTRIBUTE_NAME
+    }
+
+    def 'attributes set on package'(){
+        setup:
+        def pkg = bintray.currentSubject().repository(REPO_NAME).createPkg(pkgBuilder)
+
+        when:
+        pkg.setAttributes(attributes)
+
+        def actualPackage = restClient.get(path: "/packages/$connectionProperties.username/$REPO_NAME/$PKG_NAME").data
+        def actualAttributes = restClient.get(path: "/packages/$connectionProperties.username/$REPO_NAME/$PKG_NAME/attributes").data
+
+        then:
+        ['a', 'b', 'c'] == actualPackage.attribute_names.sort()
+        and:
+        expectedAttributes == actualAttributes.sort().toString()
+    }
+
+    def 'attributes set on version'(){
+        setup:
+        def ver = bintray.currentSubject().repository(REPO_NAME).createPkg(pkgBuilder).createVersion(versionBuilder)
+
+        when:
+        ver.setAttributes(attributes)
+
+        def actualVersion = restClient.get(path: "/packages/$connectionProperties.username/$REPO_NAME/$PKG_NAME/versions/$VERSION").data
+        def actualAttributes = restClient.get(path: "/packages/$connectionProperties.username/$REPO_NAME/$PKG_NAME/versions/$VERSION/attributes").data
+
+        then:
+        ['a', 'b', 'c'] == actualVersion.attribute_names.sort()
+        and:
+        expectedAttributes == actualAttributes.sort().toString()
+
     }
 
     def 'on error response is returned without parsing'() {

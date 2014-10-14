@@ -5,6 +5,7 @@ import com.jfrog.bintray.client.api.details.VersionDetails
 import com.jfrog.bintray.client.api.handle.PackageHandle
 import com.jfrog.bintray.client.api.handle.RepositoryHandle
 import com.jfrog.bintray.client.api.handle.VersionHandle
+import com.jfrog.bintray.client.api.model.Attribute
 import com.jfrog.bintray.client.api.model.Pkg
 import com.jfrog.bintray.client.impl.model.PackageImpl
 import org.joda.time.format.ISODateTimeFormat
@@ -67,5 +68,21 @@ class PackageHandleImpl implements PackageHandle {
         }
         bintrayHandle.post("packages/${this.repository().owner().name()}/${this.repository().name()}/${this.name()}/versions", requestBody)
         new VersionHandleImpl(bintrayHandle, this, versionDetails.name)
+    }
+
+    @Override
+    PackageHandle setAttributes(List<Attribute> attributes) {
+        bintrayHandle.post("packages/${repositoryHandle.owner().name()}/${repositoryHandle.name()}/$name/attributes", createJsonFromAttributes(attributes))
+        this
+    }
+
+    public List<Map<String, Object>> createJsonFromAttributes(List<Attribute> attributes) {
+        attributes.collect { Attribute attribute ->
+            def attr = [name: attribute.name(), values: attribute.values()]
+            if (attribute.type()) {
+                attr.type = attribute.type().name().toLowerCase()
+            }
+            attr
+        }
     }
 }
