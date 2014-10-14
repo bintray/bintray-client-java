@@ -62,7 +62,7 @@ class PackageHandleImpl implements PackageHandle {
 
     @Override
     VersionHandle createVersion(VersionDetails versionDetails) {
-        def requestBody = [name: versionDetails.name, desc: versionDetails.description]
+        def requestBody = [name: versionDetails.name, desc: versionDetails.description, vcs_tag: versionDetails.vcsTag]
         if (versionDetails.released) {
             requestBody.released = ISODateTimeFormat.dateTime().print(versionDetails.released)
         }

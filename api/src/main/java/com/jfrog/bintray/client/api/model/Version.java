@@ -30,4 +30,6 @@ public interface Version {
     DateTime released();
 
     int ordinal();
+
+    String vcsTag();
 }

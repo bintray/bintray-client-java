@@ -86,6 +86,7 @@ public class VersionImpl implements Version {
         return ordinal;
     }
 
+    @Override
     public String vcsTag() {
         return vcsTag;
     }

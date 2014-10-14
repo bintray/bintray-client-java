@@ -162,10 +162,11 @@ class BintrayClientSpec extends Specification {
         then:
         version.name() == actual.name
         version.description() == actual.desc
-        version.pkg() == actual.pkg
-        version.repository() == actual.repository
+        version.pkg() == actual.'package'
+        version.repository() == actual.repo
         version.owner() == actual.owner
         version.labels() == actual.labels
+        version.vcsTag() == actual.vcs_tag
         version.attributeNames() == actual.attribute_names
         version.ordinal() == actual.ordinal.toInteger()
         if (actual.created) {
