@@ -33,8 +33,8 @@ class VersionHandleImpl implements VersionHandle {
 
     Version get() {
         def data = bintrayHandle.get("packages/${packageHandle.repository().owner().name()}/${packageHandle.repository().name()}/${packageHandle.name()}/versions/$name").data
-        VersionImpl versionImpl = new VersionImpl(name: data.name, description: data.desc, pkg: data.pkg, repository: data.repository, owner: data.owner,
-                labels: data.labels, attributeNames: data.attribute_names, ordinal: data.ordinal.toInteger())
+        VersionImpl versionImpl = new VersionImpl(name: data.name, description: data.desc, pkg: data.'package', repository: data.repo, owner: data.owner,
+                labels: data.labels, attributeNames: data.attribute_names, ordinal: data.ordinal.toInteger(), vcsTag: data.vcs_tag)
         if (data.created) {
             versionImpl.created = ISODateTimeFormat.dateTime().parseDateTime(data.created)
         }
@@ -48,7 +48,7 @@ class VersionHandleImpl implements VersionHandle {
     }
 
     VersionHandle update(VersionDetails versionBuilder) {
-        def requestBody = [desc: versionBuilder.description]
+        def requestBody = [desc: versionBuilder.description, vcs_tag: versionBuilder.vcsTag]
         if (versionBuilder.released) {
             requestBody.released = ISODateTimeFormat.dateTime().print(versionBuilder.released)
         }

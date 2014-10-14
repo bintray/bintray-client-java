@@ -21,12 +21,13 @@ public class VersionImpl implements Version {
     private DateTime updated;
     DateTime released;
     int ordinal;
+    String vcsTag;
 
     public VersionImpl() {
     }
 
     public VersionImpl(String name, String description, String pkg, String repository, String owner, List<String> labels,
-                       List<String> attributeNames, DateTime created, DateTime updated, DateTime released, int ordinal) {
+                       List<String> attributeNames, DateTime created, DateTime updated, DateTime released, int ordinal, String vcsTag) {
         this.name = name;
         this.description = description;
         this.pkg = pkg;
@@ -38,6 +39,7 @@ public class VersionImpl implements Version {
         this.updated = updated;
         this.released = released;
         this.ordinal = ordinal;
+        this.vcsTag = vcsTag;
     }
 
     public String name() {
@@ -82,6 +84,10 @@ public class VersionImpl implements Version {
 
     public int ordinal() {
         return ordinal;
+    }
+
+    public String vcsTag() {
+        return vcsTag;
     }
 
     @Override
