@@ -1,20 +1,11 @@
 package com.jfrog.bintray.client.impl.handle
-
 import com.jfrog.bintray.client.BintrayCallException
 import com.jfrog.bintray.client.api.handle.*
 import groovyx.net.http.ContentType
-import groovyx.net.http.HTTPBuilder
 import groovyx.net.http.HttpResponseDecorator
 import groovyx.net.http.ParserRegistry
 import groovyx.net.http.RESTClient
 import org.apache.http.auth.AuthScope
-import org.apache.http.client.methods.HttpPatch
-import org.apache.http.client.params.CookiePolicy
-import org.apache.http.client.params.HttpClientParams
-import org.apache.http.impl.client.DefaultHttpClient
-
-import static org.apache.http.client.params.HttpClientParams.setCookiePolicy
-
 /**
  * @author Noam Y. Tenne
  */
@@ -72,6 +63,9 @@ class BintrayImpl implements Bintray {
     def post(String path, Object body) {
         restClient.post([path: path, body: body]);
     }
+    def post(String path) {
+        restClient.post([path: path]);
+    }
 
     def patch(String path, Object body) {
         restClient.patch([path: path, body: body])
@@ -79,5 +73,9 @@ class BintrayImpl implements Bintray {
 
     def delete(String path) {
         restClient.delete([path: path, contentType: ContentType.ANY]);
+    }
+
+    def put(String path, Object body) {
+        restClient.put([path: path, body:body]);
     }
 }

@@ -6,6 +6,7 @@ import com.jfrog.bintray.client.api.handle.VersionHandle
 import com.jfrog.bintray.client.api.model.Attribute
 import com.jfrog.bintray.client.api.model.Version
 import com.jfrog.bintray.client.impl.model.VersionImpl
+import groovyx.gpars.GParsExecutorsPool
 import org.joda.time.format.ISODateTimeFormat
 
 /**
@@ -67,4 +68,35 @@ class VersionHandleImpl implements VersionHandle {
         this
     }
 
+    VersionHandle upload(Map<String, InputStream> content) {
+        GParsExecutorsPool.withPool {
+            content.eachPrallel { path, data ->
+                bintrayHandle.put("content/${packageHandle.repository().owner().name()}/${packageHandle.repository().name()}/${packageHandle.name()}/$name/$path", data)
+            }
+        }
+        this
+    }
+
+    VersionHandle upload(List<File> content, boolean recursive) {
+        throw new UnsupportedOperationException('TODO implement upload of files')
+    }
+
+    VersionHandle upload(File directory, boolean recursive) {
+        throw new UnsupportedOperationException('TODO implement upload of directories')
+    }
+
+    VersionHandle publish(){
+        bintrayHandle.post("content/${packageHandle.repository().owner().name()}/${packageHandle.repository().name()}/${packageHandle.name()}/$name/publish")
+        this
+    }
+
+    VersionHandle discard(){
+        bintrayHandle.post("content/${packageHandle.repository().owner().name()}/${packageHandle.repository().name()}/${packageHandle.name()}/$name/publish", [discard:true])
+        this
+    }
+    VersionHandle sign(String passphrase = ''){
+        def path = "gpg/${packageHandle.repository().owner().name()}/${packageHandle.repository().name()}/${packageHandle.name()}/versions/$name"
+        passphrase ? bintrayHandle.post(path, [passphrase : passphrase]) : bintrayHandle.post(path)
+        this
+    }
 }

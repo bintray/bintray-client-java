@@ -139,6 +139,7 @@ project(':bintray-client-java-service') {
     dependencies {
         compile project(':bintray-client-java-api')
         compile localGroovy()
+        compile "org.codehaus.gpars:gpars:1.2.1"
         compile 'org.codehaus.groovy.modules.http-builder:http-builder:0.7.1'
         testCompile("org.spockframework:spock-core:0.7-groovy-2.0") {
             exclude module: 'groovy-all'
