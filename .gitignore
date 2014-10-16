@@ -1,4 +1,3 @@
-*.class
 impl\src\test\resources\bintray-client.properties
 Recursive
 target
