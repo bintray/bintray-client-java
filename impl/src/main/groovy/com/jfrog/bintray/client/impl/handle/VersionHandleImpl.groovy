@@ -1,14 +1,11 @@
 package com.jfrog.bintray.client.impl.handle
-
 import com.jfrog.bintray.client.api.details.VersionDetails
 import com.jfrog.bintray.client.api.handle.PackageHandle
 import com.jfrog.bintray.client.api.handle.VersionHandle
 import com.jfrog.bintray.client.api.model.Attribute
 import com.jfrog.bintray.client.api.model.Version
 import com.jfrog.bintray.client.impl.model.VersionImpl
-import groovyx.gpars.GParsExecutorsPool
 import org.joda.time.format.ISODateTimeFormat
-
 /**
  * @author Noam Y. Tenne
  */
@@ -69,10 +66,11 @@ class VersionHandleImpl implements VersionHandle {
     }
 
     VersionHandle upload(Map<String, InputStream> content) {
-        GParsExecutorsPool.withPool {
-            content.eachPrallel { path, data ->
-                bintrayHandle.put("content/${packageHandle.repository().owner().name()}/${packageHandle.repository().name()}/${packageHandle.name()}/$name/$path", data)
-            }
+//        TODO setup asyncClient and enable gpars
+//        withPool {
+            content.each { path, data ->
+                bintrayHandle.putBinary("content/${packageHandle.repository().owner().name()}/${packageHandle.repository().name()}/${packageHandle.name()}/$name/$path", data)
+//            }
         }
         this
     }

@@ -1,9 +1,9 @@
 package com.jfrog.bintray.client.impl
-
 import com.jfrog.bintray.client.BintrayCallException
 import com.jfrog.bintray.client.api.details.PackageDetails
 import com.jfrog.bintray.client.api.details.VersionDetails
 import com.jfrog.bintray.client.api.handle.Bintray
+import com.jfrog.bintray.client.api.handle.VersionHandle
 import com.jfrog.bintray.client.api.model.Attribute
 import com.jfrog.bintray.client.api.model.Pkg
 import com.jfrog.bintray.client.api.model.Subject
@@ -15,8 +15,11 @@ import groovyx.net.http.HttpResponseException
 import groovyx.net.http.RESTClient
 import groovyx.net.http.ResponseParseException
 import org.joda.time.format.ISODateTimeFormat
+import spock.lang.Ignore
 import spock.lang.Shared
 import spock.lang.Specification
+
+import java.security.MessageDigest
 
 import static groovyx.net.http.ContentType.BINARY
 import static groovyx.net.http.ContentType.JSON
@@ -26,7 +29,6 @@ import static org.apache.http.auth.params.AuthPNames.TARGET_AUTH_PREF
 import static org.apache.http.client.params.AuthPolicy.BASIC
 import static org.apache.http.client.params.CookiePolicy.IGNORE_COOKIES
 import static org.apache.http.client.params.HttpClientParams.setCookiePolicy
-
 /**
  * @author Noam Y. Tenne
  */
@@ -53,6 +55,9 @@ class BintrayClientSpec extends Specification {
             new AttributeImpl<String>('c', 'cee')]
 
     private String expectedAttributes = '[[name:a, type:string, values:[ay1, ay2]], [name:c, type:string, values:[cee]], [name:b, type:string, values:[e, b]]]'
+    private Map files = ['com/bla/bintray-client-java-api.jar'        : getClass().getResourceAsStream('/bintray-client-java-api.jar'),
+                         'org/foo/bar/bintray-client-java-service.jar': getClass().getResourceAsStream('/bintray-client-java-service.jar')]
+    private messageDigest = MessageDigest.getInstance("SHA1")
 
     void setup() {
     }
@@ -82,14 +87,20 @@ class BintrayClientSpec extends Specification {
         assert this.connectionProperties.apiKey
         assert this.connectionProperties.email
         bintray = BintrayClient.create(this.connectionProperties.url as String ?: 'https://api.bintray.com', this.connectionProperties.username as String, this.connectionProperties.apiKey as String)
-        restClient = new RESTClient('https://api.bintray.com')
+        restClient = createClient()
+        pkgBuilder = new PackageDetails(PKG_NAME).description('bla-bla').labels(['l1', 'l2']).licenses(['Apache-2.0'])
+        versionBuilder = new VersionDetails(VERSION).description('versionDesc')
+    }
+
+    private RESTClient createClient(String url = 'https://api.bintray.com') {
+        RESTClient restClient = new RESTClient(url)
         def params = restClient.client.getParams()
+        restClient.parser.'application/java-archive' = restClient.parser.'application/octet-stream'
         setCookiePolicy params, IGNORE_COOKIES
         params.setParameter(TARGET_AUTH_PREF, [BASIC])
         restClient.contentEncoding = ContentEncoding.Type.GZIP
         restClient.auth.basic connectionProperties.username as String, connectionProperties.apiKey as String
-        pkgBuilder = new PackageDetails(PKG_NAME).description('bla-bla').labels(['l1', 'l2']).licenses(['Apache-2.0'])
-        versionBuilder = new VersionDetails(VERSION).description('versionDesc')
+        restClient
     }
 
     def 'Connection is successful and subject has correct username and avatar'() {
@@ -217,7 +228,7 @@ class BintrayClientSpec extends Specification {
         pkg.attributeNames()[0] == ATTRIBUTE_NAME
     }
 
-    def 'attributes set on package'(){
+    def 'attributes set on package'() {
         setup:
         def pkg = bintray.currentSubject().repository(REPO_NAME).createPkg(pkgBuilder)
 
@@ -233,7 +244,7 @@ class BintrayClientSpec extends Specification {
         expectedAttributes == actualAttributes.sort().toString()
     }
 
-    def 'attributes set on version'(){
+    def 'attributes set on version'() {
         setup:
         def ver = bintray.currentSubject().repository(REPO_NAME).createPkg(pkgBuilder).createVersion(versionBuilder)
 
@@ -248,6 +259,70 @@ class BintrayClientSpec extends Specification {
         and:
         expectedAttributes == actualAttributes.sort().toString()
 
+    }
+
+    def 'files uploaded and can be accessed by the author'() {
+        setup:
+        def ver = bintray.currentSubject().repository(REPO_NAME).createPkg(pkgBuilder).createVersion(versionBuilder)
+        def downloadServerClient = createClient("https://dl.bintray.com")
+
+        when:
+        ver.upload(this.files)
+        def get1 = downloadServerClient.get(path: "/$connectionProperties.username/$REPO_NAME/${files.keySet().first()}")
+        def get2 = downloadServerClient.get(path: "/$connectionProperties.username/$REPO_NAME/${files.keySet()[1]}")
+        String actual1Sha1 = calculateSha1(get1)
+        String actual2Sha1 = calculateSha1(get2)
+        then:
+        '825e3b98f996498803d8e2da9d834f392fcfc304' == actual1Sha1
+        and:
+        '5f2a3b521b3ca76f5dac4dd2db123a8a066effe0' == actual2Sha1
+
+    }
+
+    @Ignore
+    def 'unpublished files can\'t be seen by anonymous'() {
+        setup:
+        def ver = bintray.currentSubject().repository(REPO_NAME).createPkg(pkgBuilder).createVersion(versionBuilder)
+
+        when:
+        ver.upload(this.files)
+        "https://dl.bintray.com/$connectionProperties.username/$REPO_NAME/${files.keySet().first()}".toURL().content
+        then:
+        IOException e = thrown()
+        e.message.contains('401')
+    }
+
+    def 'publish artifacts'() {
+        setup:
+        VersionHandle ver = bintray.currentSubject().repository(REPO_NAME).createPkg(pkgBuilder).createVersion(versionBuilder).upload(this.files)
+        when:
+        ver.publish()
+        String sha1 = calculateSha1("https://dl.bintray.com/$connectionProperties.username/$REPO_NAME/${files.keySet().first()}".toURL().content)
+        then:
+        '825e3b98f996498803d8e2da9d834f392fcfc304' == sha1
+    }
+
+    @Ignore
+    def 'discard artifacts'(){
+        setup:
+        VersionHandle ver = bintray.currentSubject().repository(REPO_NAME).createPkg(pkgBuilder).createVersion(versionBuilder).upload(this.files)
+        when:
+        ver.discard()
+        "https://dl.bintray.com/$connectionProperties.username/$REPO_NAME/${files.keySet().first()}".toURL().content
+        then:
+        thrown FileNotFoundException
+    }
+
+    private String calculateSha1(get) {
+        calculateSha1(new ByteArrayInputStream(get.responseData.bytes))
+    }
+
+    private String calculateSha1(InputStream inputStream) {
+        inputStream.eachByte(1024) { byte[] buf, int bytesRead ->
+            this.messageDigest.update(buf, 0, bytesRead)
+        }
+        String actualSha1 = new BigInteger(1, this.messageDigest.digest()).toString(16).padLeft(40, '0')
+        actualSha1
     }
 
     def 'on error response is returned without parsing'() {

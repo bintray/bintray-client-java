@@ -1,16 +1,13 @@
 package com.jfrog.bintray.client.impl
-
 import com.jfrog.bintray.client.api.handle.Bintray
 import com.jfrog.bintray.client.impl.handle.BintrayImpl
 import groovyx.net.http.ContentType
 import groovyx.net.http.RESTClient
-import org.apache.http.client.params.CookiePolicy
 
-import static org.apache.http.auth.params.AuthPNames.TARGET_AUTH_PREF;
+import static org.apache.http.auth.params.AuthPNames.TARGET_AUTH_PREF
 import static org.apache.http.client.params.AuthPolicy.BASIC
-import static org.apache.http.client.params.CookiePolicy.IGNORE_COOKIES;
+import static org.apache.http.client.params.CookiePolicy.IGNORE_COOKIES
 import static org.apache.http.client.params.HttpClientParams.setCookiePolicy
-
 /**
  * @author Noam Y. Tenne
  */
@@ -27,6 +24,7 @@ public class BintrayClient {
             def params = restClient.client.getParams()
             setCookiePolicy params, IGNORE_COOKIES
             if (username != null && apiKey != null) {
+                restClient.headers['Authorization'] = 'Basic '+"$username:$apiKey".getBytes('iso-8859-1').encodeBase64()
                 restClient.auth.basic username, apiKey
                 params.setParameter TARGET_AUTH_PREF, [BASIC]
             }

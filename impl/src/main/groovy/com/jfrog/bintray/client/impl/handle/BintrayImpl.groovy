@@ -1,11 +1,14 @@
 package com.jfrog.bintray.client.impl.handle
 import com.jfrog.bintray.client.BintrayCallException
 import com.jfrog.bintray.client.api.handle.*
-import groovyx.net.http.ContentType
 import groovyx.net.http.HttpResponseDecorator
 import groovyx.net.http.ParserRegistry
 import groovyx.net.http.RESTClient
 import org.apache.http.auth.AuthScope
+
+import static groovyx.net.http.ContentType.ANY
+import static groovyx.net.http.ContentType.BINARY
+
 /**
  * @author Noam Y. Tenne
  */
@@ -16,8 +19,7 @@ class BintrayImpl implements Bintray {
     BintrayImpl(RESTClient restClient) {
         this.restClient = restClient
         restClient.handler.failure = {HttpResponseDecorator resp ->
-            InputStreamReader reader = new InputStreamReader(resp.getEntity().getContent(),
-                    ParserRegistry.getCharset(resp))
+            InputStreamReader reader = new InputStreamReader(resp.entity.content, ParserRegistry.getCharset(resp))
             throw new BintrayCallException(reader.text, resp.statusLine.statusCode, resp.statusLine.reasonPhrase)
         }
     }
@@ -72,10 +74,14 @@ class BintrayImpl implements Bintray {
     }
 
     def delete(String path) {
-        restClient.delete([path: path, contentType: ContentType.ANY]);
+        restClient.delete([path: path, contentType: ANY]);
     }
 
     def put(String path, Object body) {
         restClient.put([path: path, body:body]);
+    }
+
+    def putBinary(String path, Object body) {
+        restClient.put([path: path, body: body, contentType: ANY, requestContentType: BINARY])
     }
 }
