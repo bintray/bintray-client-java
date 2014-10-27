@@ -279,12 +279,12 @@ class BintrayClientSpec extends Specification {
 
     }
 
-    @Ignore
     def 'unpublished files can\'t be seen by anonymous'() {
         setup:
         def ver = bintray.currentSubject().repository(REPO_NAME).createPkg(pkgBuilder).createVersion(versionBuilder)
 
         when:
+        Thread.sleep(1000) //wait for previous deletions to propagate
         ver.upload(this.files)
         "https://dl.bintray.com/$connectionProperties.username/$REPO_NAME/${files.keySet().first()}".toURL().content
         then:
@@ -302,12 +302,12 @@ class BintrayClientSpec extends Specification {
         '825e3b98f996498803d8e2da9d834f392fcfc304' == sha1
     }
 
-    @Ignore
     def 'discard artifacts'(){
         setup:
         VersionHandle ver = bintray.currentSubject().repository(REPO_NAME).createPkg(pkgBuilder).createVersion(versionBuilder).upload(this.files)
         when:
         ver.discard()
+        Thread.sleep(1000) //wait for propogation to dl and stuff
         "https://dl.bintray.com/$connectionProperties.username/$REPO_NAME/${files.keySet().first()}".toURL().content
         then:
         thrown FileNotFoundException
