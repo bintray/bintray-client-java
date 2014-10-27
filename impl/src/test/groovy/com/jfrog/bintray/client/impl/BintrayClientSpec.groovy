@@ -20,10 +20,12 @@ import spock.lang.Shared
 import spock.lang.Specification
 
 import java.security.MessageDigest
+import java.util.concurrent.TimeUnit
 
 import static groovyx.net.http.ContentType.BINARY
 import static groovyx.net.http.ContentType.JSON
 import static java.lang.System.getenv
+import static java.util.concurrent.TimeUnit.SECONDS
 import static org.apache.http.HttpStatus.SC_NOT_FOUND
 import static org.apache.http.auth.params.AuthPNames.TARGET_AUTH_PREF
 import static org.apache.http.client.params.AuthPolicy.BASIC
@@ -284,7 +286,7 @@ class BintrayClientSpec extends Specification {
         def ver = bintray.currentSubject().repository(REPO_NAME).createPkg(pkgBuilder).createVersion(versionBuilder)
 
         when:
-        Thread.sleep(1000) //wait for previous deletions to propagate
+        sleep(2000) //wait for previous deletions to propagate
         ver.upload(this.files)
         "https://dl.bintray.com/$connectionProperties.username/$REPO_NAME/${files.keySet().first()}".toURL().content
         then:
@@ -307,7 +309,7 @@ class BintrayClientSpec extends Specification {
         VersionHandle ver = bintray.currentSubject().repository(REPO_NAME).createPkg(pkgBuilder).createVersion(versionBuilder).upload(this.files)
         when:
         ver.discard()
-        Thread.sleep(1000) //wait for propogation to dl and stuff
+        sleep(2000) //wait for propogation to dl and stuff
         "https://dl.bintray.com/$connectionProperties.username/$REPO_NAME/${files.keySet().first()}".toURL().content
         then:
         thrown FileNotFoundException
