@@ -1,4 +1,6 @@
 package com.jfrog.bintray.client.impl.handle
+
+import com.jfrog.bintray.client.BintrayCallException
 import com.jfrog.bintray.client.api.details.VersionDetails
 import com.jfrog.bintray.client.api.handle.PackageHandle
 import com.jfrog.bintray.client.api.handle.VersionHandle
@@ -30,7 +32,7 @@ class VersionHandleImpl implements VersionHandle {
     }
 
     Version get() {
-        def data = bintrayHandle.get("packages/${packageHandle.repository().owner().name()}/${packageHandle.repository().name()}/${packageHandle.name()}/versions/$name").data
+        def data = getVersionData()
         VersionImpl versionImpl = new VersionImpl(name: data.name, description: data.desc, pkg: data.'package', repository: data.repo, owner: data.owner,
                 labels: data.labels, attributeNames: data.attribute_names, ordinal: data.ordinal.toInteger(), vcsTag: data.vcs_tag)
         if (data.created) {
@@ -60,6 +62,20 @@ class VersionHandleImpl implements VersionHandle {
     }
 
     @Override
+    boolean exists() {
+        try {
+            getVersionData()
+        } catch (BintrayCallException e) {
+            if (e.getStatusCode() == 404) {
+                return false
+            } else {
+                throw e
+            }
+        }
+        return true
+    }
+
+    @Override
     VersionHandle setAttributes(List<Attribute> attributes) {
         bintrayHandle.post("packages/${packageHandle.repository().owner().name()}/${packageHandle.repository().name()}/${packageHandle.name()}/versions/$name/attributes", packageHandle.createJsonFromAttributes(attributes))
         this
@@ -68,11 +84,15 @@ class VersionHandleImpl implements VersionHandle {
     VersionHandle upload(Map<String, InputStream> content) {
 //        TODO setup asyncClient and enable gpars
 //        withPool {
-            content.each { path, data ->
-                bintrayHandle.putBinary("content/${packageHandle.repository().owner().name()}/${packageHandle.repository().name()}/${packageHandle.name()}/$name/$path", data)
+        content.each { path, data ->
+            bintrayHandle.putBinary("content/${packageHandle.repository().owner().name()}/${packageHandle.repository().name()}/${packageHandle.name()}/$name/$path", data)
 //            }
         }
         this
+    }
+
+    private def getVersionData() {
+        return bintrayHandle.get("packages/${packageHandle.repository().owner().name()}/${packageHandle.repository().name()}/${packageHandle.name()}/versions/$name").data
     }
 
     VersionHandle upload(List<File> content, boolean recursive) {

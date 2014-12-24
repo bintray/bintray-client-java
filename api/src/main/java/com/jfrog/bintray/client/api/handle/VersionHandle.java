@@ -19,6 +19,8 @@ public interface VersionHandle extends Handle<Version> {
 
     VersionHandle delete();
 
+    boolean exists();
+
     VersionHandle setAttributes(List<Attribute> attributes);
 
     VersionHandle upload(Map<String, InputStream> content);
