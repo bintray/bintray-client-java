@@ -1,4 +1,6 @@
 package com.jfrog.bintray.client.impl.handle
+
+import com.jfrog.bintray.client.BintrayCallException
 import com.jfrog.bintray.client.api.details.VersionDetails
 import com.jfrog.bintray.client.api.handle.PackageHandle
 import com.jfrog.bintray.client.api.handle.VersionHandle
@@ -60,6 +62,20 @@ class VersionHandleImpl implements VersionHandle {
     }
 
     @Override
+    boolean exists() {
+        try {
+            bintrayHandle.head("packages/${packageHandle.repository().owner().name()}/${packageHandle.repository().name()}/${packageHandle.name()}/versions/$name").data
+        } catch (BintrayCallException e) {
+            if (e.getStatusCode() == 404) {
+                return false
+            } else {
+                throw e
+            }
+        }
+        return true
+    }
+
+    @Override
     VersionHandle setAttributes(List<Attribute> attributes) {
         bintrayHandle.post("packages/${packageHandle.repository().owner().name()}/${packageHandle.repository().name()}/${packageHandle.name()}/versions/$name/attributes", packageHandle.createJsonFromAttributes(attributes))
         this
@@ -68,8 +84,8 @@ class VersionHandleImpl implements VersionHandle {
     VersionHandle upload(Map<String, InputStream> content) {
 //        TODO setup asyncClient and enable gpars
 //        withPool {
-            content.each { path, data ->
-                bintrayHandle.putBinary("content/${packageHandle.repository().owner().name()}/${packageHandle.repository().name()}/${packageHandle.name()}/$name/$path", data)
+        content.each { path, data ->
+            bintrayHandle.putBinary("content/${packageHandle.repository().owner().name()}/${packageHandle.repository().name()}/${packageHandle.name()}/$name/$path", data)
 //            }
         }
         this

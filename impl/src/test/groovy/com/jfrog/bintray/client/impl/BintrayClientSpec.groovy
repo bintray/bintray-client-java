@@ -15,17 +15,14 @@ import groovyx.net.http.HttpResponseException
 import groovyx.net.http.RESTClient
 import groovyx.net.http.ResponseParseException
 import org.joda.time.format.ISODateTimeFormat
-import spock.lang.Ignore
 import spock.lang.Shared
 import spock.lang.Specification
 
 import java.security.MessageDigest
-import java.util.concurrent.TimeUnit
 
 import static groovyx.net.http.ContentType.BINARY
 import static groovyx.net.http.ContentType.JSON
 import static java.lang.System.getenv
-import static java.util.concurrent.TimeUnit.SECONDS
 import static org.apache.http.HttpStatus.SC_NOT_FOUND
 import static org.apache.http.auth.params.AuthPNames.TARGET_AUTH_PREF
 import static org.apache.http.client.params.AuthPolicy.BASIC
@@ -105,7 +102,7 @@ class BintrayClientSpec extends Specification {
         restClient
     }
 
-    def 'Connection is successful and subject has correct username and avatar'() {
+    def 'connection is successful and subject has correct username and avatar'() {
         //noinspection JavaStylePropertiesInvocation,GroovySetterCallCanBePropertyAccess
         setup:
         //setter returns `this`? WTF!
@@ -119,7 +116,7 @@ class BintrayClientSpec extends Specification {
         new URL(clientTests.gravatarId).bytes == gravatar.download(connectionProperties.email as String)
     }
 
-    def 'Default Repos exist'(String repoName, def _) {
+    def 'default repos exist'(String repoName, def _) {
         expect:
         bintray.currentSubject().repository(repoName)
 
@@ -131,7 +128,7 @@ class BintrayClientSpec extends Specification {
         'generic' | _
     }
 
-    def 'Package created'() {
+    def 'package created'() {
         setup:
         bintray.currentSubject().repository(REPO_NAME).createPkg(pkgBuilder).createVersion(versionBuilder)
 
@@ -164,7 +161,25 @@ class BintrayClientSpec extends Specification {
         pkg.systemIds() == actual.system_ids
     }
 
-    def 'Version created'() {
+    def 'package exists'() {
+        when:
+        // Create the package:
+        bintray.currentSubject().repository(REPO_NAME).createPkg(pkgBuilder)
+
+        then:
+        // Check that the package exists:
+        bintray.currentSubject().repository(REPO_NAME).pkg(PKG_NAME).exists()
+
+        when:
+        // Delete the package:
+        bintray.currentSubject().repository(REPO_NAME).pkg(PKG_NAME).delete()
+
+        then:
+        // Check that the package does not exist:
+        !bintray.currentSubject().repository(REPO_NAME).pkg(PKG_NAME).exists()
+    }
+
+    def 'version created'() {
         setup:
         def pkg = bintray.currentSubject().repository(REPO_NAME).createPkg(pkgBuilder)
 
@@ -191,6 +206,24 @@ class BintrayClientSpec extends Specification {
         if (actual.released) {
             version.released() == ISODateTimeFormat.dateTime().parseDateTime(actual.released as String)
         }
+    }
+
+    def 'version exists'() {
+        when:
+        // Create the version:
+        bintray.currentSubject().repository(REPO_NAME).createPkg(pkgBuilder).createVersion(versionBuilder)
+
+        then:
+        // Check that the version exists:
+        bintray.currentSubject().repository(REPO_NAME).pkg(PKG_NAME).version(VERSION).exists()
+
+        when:
+        // Delete the version:
+        bintray.currentSubject().repository(REPO_NAME).pkg(PKG_NAME).version(VERSION).delete()
+
+        then:
+        // Check that the package does not exist:
+        !bintray.currentSubject().repository(REPO_NAME).pkg(PKG_NAME).version(VERSION).exists()
     }
 
     def 'search by attributes'() {
@@ -336,7 +369,6 @@ class BintrayClientSpec extends Specification {
         BintrayCallException e = thrown()
         e.statusCode == SC_NOT_FOUND
         e.reason == 'Not Found'
-        e.message.toLowerCase().contains('<body>')
     }
 
     def 'wrong subject gives 404'() {

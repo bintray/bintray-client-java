@@ -20,6 +20,8 @@ public interface PackageHandle extends Handle<Pkg> {
 
     PackageHandle delete();
 
+    boolean exists();
+
     VersionHandle createVersion(VersionDetails versionDetails);
 
     PackageHandle setAttributes(List<Attribute> attributes);

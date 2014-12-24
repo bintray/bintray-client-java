@@ -1,5 +1,6 @@
 package com.jfrog.bintray.client.impl.handle
 
+import com.jfrog.bintray.client.BintrayCallException
 import com.jfrog.bintray.client.api.details.PackageDetails
 import com.jfrog.bintray.client.api.details.VersionDetails
 import com.jfrog.bintray.client.api.handle.PackageHandle
@@ -58,6 +59,20 @@ class PackageHandleImpl implements PackageHandle {
     PackageHandle delete() {
         bintrayHandle.delete("packages/${repositoryHandle.owner().name()}/${repositoryHandle.name()}/$name")
         this
+    }
+
+    @Override
+    boolean exists() {
+        try {
+            bintrayHandle.head("packages/${repositoryHandle.owner().name()}/${repositoryHandle.name()}/$name").data
+        } catch (BintrayCallException e) {
+            if (e.getStatusCode() == 404) {
+                return false
+            } else {
+                throw e
+            }
+        }
+        return true
     }
 
     @Override
