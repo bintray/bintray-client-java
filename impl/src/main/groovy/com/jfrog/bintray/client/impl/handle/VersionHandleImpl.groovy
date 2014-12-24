@@ -32,7 +32,7 @@ class VersionHandleImpl implements VersionHandle {
     }
 
     Version get() {
-        def data = getVersionData()
+        def data = bintrayHandle.get("packages/${packageHandle.repository().owner().name()}/${packageHandle.repository().name()}/${packageHandle.name()}/versions/$name").data
         VersionImpl versionImpl = new VersionImpl(name: data.name, description: data.desc, pkg: data.'package', repository: data.repo, owner: data.owner,
                 labels: data.labels, attributeNames: data.attribute_names, ordinal: data.ordinal.toInteger(), vcsTag: data.vcs_tag)
         if (data.created) {
@@ -64,7 +64,7 @@ class VersionHandleImpl implements VersionHandle {
     @Override
     boolean exists() {
         try {
-            getVersionData()
+            bintrayHandle.head("packages/${packageHandle.repository().owner().name()}/${packageHandle.repository().name()}/${packageHandle.name()}/versions/$name").data
         } catch (BintrayCallException e) {
             if (e.getStatusCode() == 404) {
                 return false
@@ -89,10 +89,6 @@ class VersionHandleImpl implements VersionHandle {
 //            }
         }
         this
-    }
-
-    private def getVersionData() {
-        return bintrayHandle.get("packages/${packageHandle.repository().owner().name()}/${packageHandle.repository().name()}/${packageHandle.name()}/versions/$name").data
     }
 
     VersionHandle upload(List<File> content, boolean recursive) {

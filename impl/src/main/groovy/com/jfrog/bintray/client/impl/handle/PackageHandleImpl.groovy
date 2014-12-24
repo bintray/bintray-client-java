@@ -38,11 +38,8 @@ class PackageHandleImpl implements PackageHandle {
     }
 
     Pkg get() {
-        createPackageFromJsonMap(getPackageData())
-    }
-
-    private def getPackageData() {
-        return bintrayHandle.get("packages/${repositoryHandle.owner().name()}/${repositoryHandle.name()}/$name").data
+        def data = bintrayHandle.get("packages/${repositoryHandle.owner().name()}/${repositoryHandle.name()}/$name").data
+        createPackageFromJsonMap(data)
     }
 
     private static PackageImpl createPackageFromJsonMap(data) {
@@ -67,7 +64,7 @@ class PackageHandleImpl implements PackageHandle {
     @Override
     boolean exists() {
         try {
-            getPackageData()
+            bintrayHandle.head("packages/${repositoryHandle.owner().name()}/${repositoryHandle.name()}/$name").data
         } catch (BintrayCallException e) {
             if (e.getStatusCode() == 404) {
                 return false

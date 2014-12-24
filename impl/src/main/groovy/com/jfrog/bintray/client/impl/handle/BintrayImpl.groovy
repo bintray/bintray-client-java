@@ -62,6 +62,10 @@ class BintrayImpl implements Bintray {
         restClient.get([path: path])
     }
 
+    def head(String path) {
+        restClient.get([path: path])
+    }
+
     def post(String path, Object body) {
         restClient.post([path: path, body: body]);
     }
