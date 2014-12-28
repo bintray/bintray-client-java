@@ -33,6 +33,7 @@ allprojects {
             }
             defaults {
                 publications 'main'
+                properties = ['bintray.repo': 'jfrog/bintray-tools', 'bintray.package': 'bintray-client-java', 'bintray.version': version.toString()]
             }
         }
     }
