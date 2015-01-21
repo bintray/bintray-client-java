@@ -43,12 +43,19 @@ artifactoryPublish.skip = true
 
 subprojects() {
     apply plugin: 'java'
-
-    sourceCompatibility = 1.5
-    targetCompatibility = 1.5
+    sourceCompatibility = 1.7
+    targetCompatibility = 1.7
 
     dependencies {
-        compile 'joda-time:joda-time:2.3'
+        compile addSlf4J('slf4j-api')
+        compile addSlf4J('log4j-over-slf4j')
+        compile addSlf4J('jcl-over-slf4j')
+        compile 'ch.qos.logback:logback-classic:1.0.10'
+        compile 'joda-time:joda-time:2.2'
+        compile 'org.codehaus.jackson:jackson-mapper-asl:1.9.5'
+        compile("org.apache.httpcomponents:httpclient:4.3.5") {
+            exclude group: 'commons-logging' //DO NOT REMOVE
+        }
     }
 
     task sourcesJar(type: Jar) {
@@ -68,16 +75,17 @@ subprojects() {
     }
 
     test {
-        finalizedBy(testResultsZip)
         jvmArgs (['-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.SimpleLog',
-                '-Dorg.apache.commons.logging.simplelog.showdatetime=true',
-                '-Dorg.apache.commons.logging.simplelog.log.org.apache.http=DEBUG',
-                '-Dorg.apache.commons.logging.simplelog.log.org.apache.http.wire=ERROR'])
+                  '-Dorg.apache.commons.logging.simplelog.showdatetime=true',
+                  '-Dorg.apache.commons.logging.simplelog.log.org.apache.http=ERROR',
+                  '-Dorg.apache.commons.logging.simplelog.log.org.apache.http.wire=ERROR'])
         testLogging {
             exceptionFormat "full"
             events "started", "passed", "skipped", "failed", "standardOut", "standardError"
             minGranularity 0
         }
+
+        finalizedBy(testResultsZip)
     }
 
 
@@ -114,6 +122,11 @@ subprojects() {
                                 appendNode('name', 'Baruch Sadogursky')
                                 appendNode('email', 'jbaruch@jfrog.com')
                             }
+                            appendNode('developer').with {
+                                appendNode('id', 'danf')
+                                appendNode('name', 'Dan Feldman')
+                                appendNode('email', 'danf@jfrog.com')
+                            }
                         }
                         appendNode('scm').with {
                             appendNode('connection', 'git@github.com:JFrogDev/bintray/bintray-client-java.git')
@@ -135,19 +148,30 @@ subprojects() {
 }
 
 project(':bintray-client-java-service') {
-    apply plugin: 'groovy'
-
     dependencies {
         compile project(':bintray-client-java-api')
-        compile localGroovy()
-        compile "org.codehaus.gpars:gpars:1.2.1"
-        compile 'org.codehaus.groovy.modules.http-builder:http-builder:0.7.1'
-        testCompile("org.spockframework:spock-core:0.7-groovy-2.0") {
-            exclude module: 'groovy-all'
-            //localGroovy and spock groovy will probably conflict. Both are 2.x, we're good.
-        }
+        compile 'org.codehaus.groovy:groovy:1.8.0'
+        compile 'commons-io:commons-io:2.1'
+        compile 'commons-lang:commons-lang:2.6'
         testCompile group: 'com.timgroup', name: 'jgravatar', version: '1.0'
+        testCompile("org.spockframework:spock-core:0.7-groovy-1.8") {
+            exclude module: 'groovy-all'
+        }
     }
+}
+
+project(':bintray-client-java-api') {
+    apply plugin: 'java'
+    sourceCompatibility = 1.7
+    targetCompatibility = 1.7
+}
+
+project(':bintray-client-java-service') {
+    apply plugin: 'groovy'
+}
+
+def addSlf4J(name) {
+    [group: 'org.slf4j', name: name, version: '1.7.5']
 }
 
 task wrapper(type: Wrapper) {
@@ -157,7 +181,7 @@ task wrapper(type: Wrapper) {
 idea {
     project {
         jdkName = '1.7'
-        languageLevel = '1.5'
+        languageLevel = '1.7'
         wildcards += '?*.gradle'
         ipr {
             withXml { provider ->
