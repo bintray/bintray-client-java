@@ -71,8 +71,8 @@ public class VersionImpl implements Version {
             jsonContent = mapper.writeValueAsString(versionDetails);
         } catch (IOException e) {
             log.error("Can't process the json file: " + e.getMessage());
+            log.debug("{}", e);
             throw e;
-
         }
         return jsonContent;
     }

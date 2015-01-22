@@ -14,7 +14,7 @@ import org.apache.http.impl.client.CloseableHttpClient;
  */
 public class BintrayClient {
 
-    public static final int DEFAULT_TIMEOUT = 15000;
+    public static final int DEFAULT_TIMEOUT = 30000;
     public static final String BINTRAY_API_URL = "https://api.bintray.com";
     public static final String USER_AGENT = "BintrayJavaClient/0.5"; // TODO: make dynamic
 

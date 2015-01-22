@@ -47,7 +47,7 @@ class BintrayClientSpec extends Specification {
     @Shared
     private Bintray bintray
     @Shared
-    private BintrayImpl restClient  //BintrayImpl can be used as a REST client as well to avoid importing grooyx.net
+    private BintrayImpl restClient
     @Shared
     private PackageDetails pkgBuilder
     @Shared
@@ -67,8 +67,8 @@ class BintrayClientSpec extends Specification {
             new Attribute<String>('c', 'cee')]
 
     private String expectedAttributes = '[[values:[ay1, ay2], name:a, type:string], [values:[cee], name:c, type:string], [values:[e, b], name:b, type:string]]'
-    private Map files = ['com/bla/bintray-client-java-api.jar'        : getClass().getResourceAsStream('/bintray-client-java-api.jar'),
-                         'org/foo/bar/bintray-client-java-service.jar': getClass().getResourceAsStream('/bintray-client-java-service.jar')]
+    private Map files = ['com/bla/bintray-client-java-api.jar'        : getClass().getResourceAsStream('/testJar1.jar'),
+                         'org/foo/bar/bintray-client-java-service.jar': getClass().getResourceAsStream('/testJar2.jar')]
 
     private messageDigest = MessageDigest.getInstance("SHA1")
     private String assortedAttributes = "[{\"name\":\"verAttr2\",\"values\":[\"val1\",\"val2\"],\"type\":\"string\"},{\"name\":\"verAttr3\",\"values\":[1,2.2,4],\"type\":\"number\"},{\"name\":\"verAttr2\",\"values\":[\"2011-07-14T19:43:37+0100\"],\"type\":\"date\"}]"
@@ -362,9 +362,9 @@ class BintrayClientSpec extends Specification {
         String actual1Sha1 = calculateSha1(get1)
         String actual2Sha1 = calculateSha1(get2)
         then:
-        '825e3b98f996498803d8e2da9d834f392fcfc304' == actual1Sha1
+        '98aa17ed348066a6dd01e8000f674028ed6de2ee' == actual1Sha1
         and:
-        '5f2a3b521b3ca76f5dac4dd2db123a8a066effe0' == actual2Sha1
+        '17971cd7848496e962587e6a62180b1d5938637e' == actual2Sha1
     }
 
     def 'unpublished files can\'t be seen by anonymous'() {
@@ -372,13 +372,13 @@ class BintrayClientSpec extends Specification {
         sleep(10000) //wait for previous deletions to propagate
         def ver = bintray.subject(connectionProperties.username).repository(REPO_NAME).createPkg(pkgBuilder).createVersion(versionBuilder)
         HttpClientConfigurator conf = new HttpClientConfigurator();
-        def anonymousDownloadServerClient = new BintrayImpl(conf.hostFromUrl("https://dl.bintray.com").noRetry().getClient(), "https://dl.bintray.com")
+        def anonymousDownloadServerClient = new BintrayImpl(conf.hostFromUrl("https://dl.bintray.com").noRetry().noCookies().getClient(), "https://dl.bintray.com")
 
         when:
         sleep(6000)
         ver.upload(this.files)
         sleep(10000)
-        def response = anonymousDownloadServerClient.get("/" + connectionProperties.username + "/" + REPO_NAME + "/" + files.keySet().asList().get(0), null)
+        anonymousDownloadServerClient.get("/" + connectionProperties.username + "/" + REPO_NAME + "/" + files.keySet().asList().get(0), null)
 
         then:
         BintrayCallException bce = thrown()
@@ -399,7 +399,7 @@ class BintrayClientSpec extends Specification {
         String sha1 = calculateSha1(response)
 
         then:
-        '825e3b98f996498803d8e2da9d834f392fcfc304' == sha1
+        '98aa17ed348066a6dd01e8000f674028ed6de2ee' == sha1
     }
 
     def 'discard artifacts'() {

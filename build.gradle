@@ -52,6 +52,7 @@ subprojects() {
         compile addSlf4J('jcl-over-slf4j')
         compile 'ch.qos.logback:logback-classic:1.0.10'
         compile 'joda-time:joda-time:2.2'
+        compile 'commons-io:commons-io:2.1'
         compile 'org.codehaus.jackson:jackson-mapper-asl:1.9.5'
         compile("org.apache.httpcomponents:httpclient:4.3.5") {
             exclude group: 'commons-logging' //DO NOT REMOVE
@@ -151,7 +152,6 @@ project(':bintray-client-java-service') {
     dependencies {
         compile project(':bintray-client-java-api')
         compile 'org.codehaus.groovy:groovy:1.8.0'
-        compile 'commons-io:commons-io:2.1'
         compile 'commons-lang:commons-lang:2.6'
         testCompile group: 'com.timgroup', name: 'jgravatar', version: '1.0'
         testCompile("org.spockframework:spock-core:0.7-groovy-1.8") {

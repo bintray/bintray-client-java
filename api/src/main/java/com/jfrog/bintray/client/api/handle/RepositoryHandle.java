@@ -13,9 +13,13 @@ public interface RepositoryHandle extends Handle<Repository> {
 
     SubjectHandle owner();
 
+    Repository get() throws IOException, BintrayCallException;
+
     PackageHandle pkg(String name);
 
     PackageHandle createPkg(PackageDetails packageDetails) throws IOException, BintrayCallException;
+
+    String name();
 
     AttributesSearchQuery searchForPackage();
 

@@ -131,6 +131,11 @@ public class HttpClientConfigurator {
         return this;
     }
 
+    public HttpClientConfigurator noCookies() {
+        builder.disableCookieManagement();
+        return this;
+    }
+
     /**
      * see {@link org.apache.http.client.config.RequestConfig#isStaleConnectionCheckEnabled()}
      */

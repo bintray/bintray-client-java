@@ -1,6 +1,7 @@
 package com.jfrog.bintray.client.impl.handle;
 
 import com.jfrog.bintray.client.api.BintrayCallException;
+import com.jfrog.bintray.client.api.MultipleBintrayCallException;
 import com.jfrog.bintray.client.api.handle.*;
 import com.jfrog.bintray.client.impl.BintrayClient;
 import org.apache.commons.io.IOUtils;
@@ -9,7 +10,6 @@ import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.methods.*;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.client.utils.HttpClientUtils;
-import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.InputStreamEntity;
 import org.apache.http.entity.StringEntity;
@@ -18,10 +18,9 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.StringWriter;
+import java.nio.charset.Charset;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -48,6 +47,12 @@ public class BintrayImpl implements Bintray {
 
     static public void addContentTypeBinaryHeader(Map<String, String> headers) {
         headers.put(HttpHeaders.CONTENT_TYPE, ContentType.DEFAULT_BINARY.getMimeType());
+    }
+
+    private static boolean statusNotOk(int statusCode) {
+        return statusCode != HttpStatus.SC_OK
+                && statusCode != HttpStatus.SC_CREATED
+                && statusCode != HttpStatus.SC_ACCEPTED;
     }
 
     @Override
@@ -94,16 +99,14 @@ public class BintrayImpl implements Bintray {
         return setHeadersAndExecute(postRequest, headers);
     }
 
-    public HttpResponse post(String uri, Map<String, String> headers, InputStream elementInputStream)
-            throws BintrayCallException {
+    public HttpResponse post(String uri, Map<String, String> headers, InputStream elementInputStream) throws BintrayCallException {
         HttpPost postRequest = new HttpPost(createUrl(uri));
         HttpEntity requestEntity = new InputStreamEntity(elementInputStream);
         postRequest.setEntity(requestEntity);
         return setHeadersAndExecute(postRequest, headers);
     }
 
-    public HttpResponse patch(String uri, Map<String, String> headers, InputStream elementInputStream)
-            throws BintrayCallException {
+    public HttpResponse patch(String uri, Map<String, String> headers, InputStream elementInputStream) throws BintrayCallException {
         HttpPatch patchRequest = new HttpPatch(createUrl(uri));
         HttpEntity requestEntity = new InputStreamEntity(elementInputStream);
         patchRequest.setEntity(requestEntity);
@@ -115,8 +118,7 @@ public class BintrayImpl implements Bintray {
         return setHeadersAndExecute(deleteRequest, headers);
     }
 
-    public HttpResponse putBinary(String uri, Map<String, String> headers, InputStream elementInputStream)
-            throws BintrayCallException {
+    public HttpResponse putBinary(String uri, Map<String, String> headers, InputStream elementInputStream) throws BintrayCallException {
         if (headers == null) {
             headers = new HashMap<>();
         }
@@ -124,8 +126,7 @@ public class BintrayImpl implements Bintray {
         return put(uri, headers, elementInputStream);
     }
 
-    public HttpResponse putBinary(Map<String, InputStream> uriAndStreamMap, Map<String, String> headers)
-            throws BintrayCallException {
+    public HttpResponse putBinary(Map<String, InputStream> uriAndStreamMap, Map<String, String> headers) throws MultipleBintrayCallException {
         if (headers == null) {
             headers = new HashMap<>();
         }
@@ -133,19 +134,15 @@ public class BintrayImpl implements Bintray {
         return put(uriAndStreamMap, headers);
     }
 
-    public HttpResponse put(String uri, Map<String, String> headers, InputStream elementInputStream)
-            throws BintrayCallException {
+    public HttpResponse put(String uri, Map<String, String> headers, InputStream elementInputStream) throws BintrayCallException {
         HttpPut putRequest = new HttpPut(createUrl(uri));
         HttpEntity requestEntity = new InputStreamEntity(elementInputStream);
         putRequest.setEntity(requestEntity);
         return setHeadersAndExecute(putRequest, headers);
     }
 
-    public HttpResponse put(Map<String, InputStream> uriAndStreamMap, Map<String, String> headers)
-            throws BintrayCallException {
-
+    public HttpResponse put(Map<String, InputStream> uriAndStreamMap, Map<String, String> headers) throws MultipleBintrayCallException {
         List<HttpPut> requests = new ArrayList<>();
-        List<CloseableHttpResponse> responses = new ArrayList<>();
         for (String uri : uriAndStreamMap.keySet()) {
             HttpPut putRequest = new HttpPut(createUrl(uri));
             HttpEntity requestEntity = new InputStreamEntity(uriAndStreamMap.get(uri));
@@ -153,38 +150,7 @@ public class BintrayImpl implements Bintray {
             setHeaders(putRequest, headers);
             requests.add(putRequest);
         }
-        List<String> errors = new ArrayList<>();
-        try {
-            errors = put(requests);
-        } catch (InterruptedException e) {
-            String error = "Error in execution of put request: " + e.getMessage() + " , " + e.getCause().getMessage();
-            log.error(error);
-            log.debug("{}", e);
-            errors.add(error);
-        }
-
-        //Populate a response with all errors or return OK
-        int finalStatus = 400;
-        if (errors.isEmpty()) {
-            finalStatus = 201;
-            errors.add("Operation Successful");
-        }
-        HttpResponse newResponse = newResponse = DefaultHttpResponseFactory.INSTANCE.newHttpResponse(
-                new ProtocolVersion("HTTP", 1, 1), finalStatus, new HttpClientContext());
-        StringWriter writer = new StringWriter();
-        try {
-            IOUtils.writeLines(errors, "\n", writer);
-            newResponse.setEntity(new StringEntity(writer.toString()));
-        } catch (IOException ioe) {
-            log.error(ioe.getMessage());
-            log.debug("{}", ioe);
-            throw new BintrayCallException(ioe.getMessage(), 500, ioe.getCause().getMessage());
-        }
-        if (newResponse.getStatusLine().getStatusCode() != 201) {
-            throw new BintrayCallException("There were errors while executing the put requests: ", 400,
-                    "\n\n" + writer.toString());
-        }
-        return newResponse;
+        return put(requests);
     }
 
     /**
@@ -193,14 +159,11 @@ public class BintrayImpl implements Bintray {
      *
      * @param requests requests to execute
      * @return A list of all errors thrown while performing the requests or empty list if all requests finished OK
-     * @throws BintrayCallException
-     * @throws InterruptedException
      */
-    private List<String> put(List<HttpPut> requests) throws BintrayCallException, InterruptedException {
+    private HttpResponse put(List<HttpPut> requests) throws MultipleBintrayCallException {
         List<PutRequestRunner> runners = new ArrayList<>();
-        List<Future<HttpResponse>> executions = new ArrayList<>();
-        List<HttpResponse> responses = new ArrayList<>();
-        List<String> errors = new ArrayList<>();                    //Propagates all errors, if exist
+        List<Future<String>> executions = new ArrayList<>();
+        List<BintrayCallException> errors = new ArrayList<>();
         for (HttpPut request : requests) {
             PutRequestRunner runner = new PutRequestRunner(request, client, responseHandler);
             runners.add(runner);
@@ -208,58 +171,46 @@ public class BintrayImpl implements Bintray {
         try {
             executions = executorService.invokeAll(runners, BintrayClient.DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
-            String error = e.getMessage() + " , " + e.getCause().getMessage();
-            log.error(error);
+            BintrayCallException bce = new BintrayCallException(400, e.getMessage(), (e.getCause() == null) ? "" : e.getCause().getMessage());
+            log.error(bce.toString());
             log.debug("{}", e);
-            errors.add(error);
+            errors.add(bce);
         }
 
         //Wait until all executions are done
         while (!executions.isEmpty()) {
-            for (Iterator<Future<HttpResponse>> executionIter = executions.iterator(); executionIter.hasNext(); ) {
-                Future<HttpResponse> execution = executionIter.next();
+            for (Iterator<Future<String>> executionIter = executions.iterator(); executionIter.hasNext(); ) {
+                Future<String> execution = executionIter.next();
                 if (execution.isDone()) {
                     try {
-                        responses.add(execution.get());
-                        executionIter.remove();                 //Iterate over still active executions only
-                    } catch (ExecutionException | RuntimeException e) {
-                        String error = "";
+                        execution.get();
+                    } catch (Exception e) {
+                        BintrayCallException bce;
                         if (e.getCause() instanceof BintrayCallException) {
-                            BintrayCallException bce = (BintrayCallException) e.getCause();
-                            error = bce.getStatusCode() + " : " + bce.getMessage() + ", " + bce.getReason();
-                            log.error(error);
-                            log.debug("{}", bce);
+                            bce = (BintrayCallException) e.getCause();
                         } else {
-                            if (e.getCause() != null) {
-                                error = e.getMessage() + " , " + e.getCause().getMessage();
-                            } else {
-                                error = e.getMessage();
-                            }
-                            log.error(error);
-                            log.debug("{}", e);
+                            bce = new BintrayCallException(400, e.getMessage(), (e.getCause() == null) ? "" : e.getCause().getMessage());
                         }
-                        executionIter.remove();  //Remove failed execution
-                        errors.add(error);
+                        log.error(bce.toString());
+                        log.debug("{}", e);
+                        errors.add(bce);
+                    } finally {
+                        executionIter.remove();     //Remove completed execution from iteration
                     }
                 }
             }
         }
-        for (HttpResponse response : responses) {
-            if (statusNotOk(response.getStatusLine().getStatusCode())) {
-                String responseBody = "";
-                try {
-                    responseBody = IOUtils.toString(response.getEntity().getContent());
-                } catch (IOException ioe) {
-                    //null response body, nothing to do
-                }
-                String error = String.valueOf(response.getStatusLine().getStatusCode())
-                        + " : " + response.getStatusLine().getReasonPhrase()
-                        + " , " + responseBody;
-                errors.add(error);
-                log.error(error);
-            }
+
+        //Return ok or throw errors
+        if (errors.isEmpty()) {
+            String entity = "Operation Successful";
+            HttpResponse response = DefaultHttpResponseFactory.INSTANCE.newHttpResponse(
+                    new ProtocolVersion("HTTP", 1, 1), HttpStatus.SC_CREATED, new HttpClientContext());
+            response.setEntity(new StringEntity(entity, Charset.forName("UTF-8")));
+            return response;
+        } else {
+            throw new MultipleBintrayCallException(errors);
         }
-        return errors;
     }
 
     private String createUrl(String uri) {
@@ -267,15 +218,14 @@ public class BintrayImpl implements Bintray {
     }
 
     private void setHeaders(HttpUriRequest request, Map<String, String> headers) {
-        if (headers != null) {
+        if (headers != null && !headers.isEmpty()) {
             for (String header : headers.keySet()) {
                 request.setHeader(header, headers.get(header));
             }
         }
     }
 
-    private HttpResponse setHeadersAndExecute(HttpUriRequest request, Map<String, String> headers)
-            throws BintrayCallException {
+    private HttpResponse setHeadersAndExecute(HttpUriRequest request, Map<String, String> headers) throws BintrayCallException {
         setHeaders(request, headers);
         return execute(request);
     }
@@ -283,25 +233,21 @@ public class BintrayImpl implements Bintray {
     private HttpResponse execute(HttpUriRequest request) throws BintrayCallException {
         try {
             return client.execute(request, responseHandler);
+        } catch (BintrayCallException bce) {
+            log.debug("{}", bce);
+            throw bce;
         } catch (IOException ioe) {
-            if (ioe instanceof BintrayCallException) {
-                throw (BintrayCallException) ioe;
-            }
             //Underlying IOException form the client
             String underlyingCause = (ioe.getCause() == null) ? "" : ioe.getCause().getMessage();
             log.debug("{}", ioe);
-            throw new BintrayCallException(ioe.getMessage(), -1, underlyingCause);
+            throw new BintrayCallException(400, ioe.getMessage(), underlyingCause);
         }
     }
 
-    private boolean statusNotOk(int statusCode) {
-        return (statusCode != HttpStatus.SC_OK)
-                && (statusCode != HttpStatus.SC_CREATED)
-                && (statusCode != HttpStatus.SC_ACCEPTED);
-    }
-
-    //Currently only implemented for put requests
-    private static class PutRequestRunner implements Callable<HttpResponse> {
+    /**
+     * A callable that executes a single put request, returns a String containing an error or '200' if successful
+     */
+    private static class PutRequestRunner implements Callable<String> {
 
         private final HttpPut request;
         private final CloseableHttpClient client;
@@ -316,9 +262,31 @@ public class BintrayImpl implements Bintray {
         }
 
         @Override
-        public HttpResponse call() throws Exception {
-            log.info("Pushing " + request.getURI().getPath().substring(9));
-            return client.execute(request, responseHandler, context);
+        public String call() throws BintrayCallException {
+            String pushPath = request.getURI().getPath().substring(9); //Substring cuts the '/content/' part from the URI
+            log.info("Pushing " + pushPath);
+            StringBuilder errorResultBuilder = new StringBuilder(" Pushing " + pushPath + " failed: ");
+            HttpResponse response;
+            try {
+                response = client.execute(request, responseHandler, context);
+            } catch (BintrayCallException bce) {
+                log.debug("{}", bce);
+                errorResultBuilder.append(bce.getMessage());
+                bce.setMessage(errorResultBuilder.toString());
+                throw bce;
+            } catch (IOException ioe) {
+                log.debug("{}", ioe);
+                String cause = (ioe.getCause() == null) ? "" : " : " + ioe.getCause().getMessage();
+                errorResultBuilder.append(ioe.getMessage()).append(cause);
+                throw new BintrayCallException(HttpStatus.SC_BAD_REQUEST, ioe.getMessage(), errorResultBuilder.toString());
+            }
+            if (statusNotOk(response.getStatusLine().getStatusCode())) {
+                BintrayCallException bce = new BintrayCallException(response);
+                errorResultBuilder.append(bce.getMessage());
+                bce.setMessage(errorResultBuilder.toString());
+                throw bce;
+            }
+            return String.valueOf(response.getStatusLine().getStatusCode());
         }
     }
 
@@ -330,34 +298,31 @@ public class BintrayImpl implements Bintray {
     private class BintrayResponseHandler implements ResponseHandler<HttpResponse> {
 
         @Override
-        public HttpResponse handleResponse(HttpResponse response) throws IOException, BintrayCallException {
+        public HttpResponse handleResponse(HttpResponse response) throws BintrayCallException {
             int statusCode = response.getStatusLine().getStatusCode();
-
-            //Response entity might be null, 500 and 405 also give the html itself so skip it
-            ByteArrayOutputStream output = new ByteArrayOutputStream();
-            if (response.getEntity() != null && response.getEntity().getContent() != null && statusCode != 500
-                    && statusCode != 405) {
-                try {
-                    IOUtils.copy(response.getEntity().getContent(), output);
-                } catch (IOException ioe) {
-                    //Messed up somehow..?
-                }
-            }
-
             if (statusNotOk(statusCode)) {
-                BintrayCallException ex = new BintrayCallException(output.toString(), statusCode,
-                        response.getStatusLine().getReasonPhrase());
+                BintrayCallException bce = new BintrayCallException(response);
 
                 //We're using CloseableHttpClient so it's ok
                 HttpClientUtils.closeQuietly((CloseableHttpResponse) response);
-                throw ex;
+                throw bce;
+            }
+
+            //Response entity might be null, 500 and 405 also give the html itself so skip it
+            String entity = "";
+            if (response.getEntity() != null && statusCode != 500 && statusCode != 405) {
+                try {
+                    entity = IOUtils.toString(response.getEntity().getContent());
+                } catch (IOException | NullPointerException e) {
+                    //Null entity - Ignore
+                } finally {
+                    HttpClientUtils.closeQuietly((CloseableHttpResponse) response);
+                }
             }
 
             HttpResponse newResponse = DefaultHttpResponseFactory.INSTANCE.newHttpResponse(response.getStatusLine(), new HttpClientContext());
-
-            newResponse.setEntity(new ByteArrayEntity(output.toByteArray()));
+            newResponse.setEntity(new StringEntity(entity, Charset.forName("UTF-8")));
             newResponse.setHeaders(response.getAllHeaders());
-            HttpClientUtils.closeQuietly((CloseableHttpResponse) response);
             return newResponse;
         }
     }

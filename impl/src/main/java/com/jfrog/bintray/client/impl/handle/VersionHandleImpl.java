@@ -1,6 +1,7 @@
 package com.jfrog.bintray.client.impl.handle;
 
 import com.jfrog.bintray.client.api.BintrayCallException;
+import com.jfrog.bintray.client.api.MultipleBintrayCallException;
 import com.jfrog.bintray.client.api.details.Attribute;
 import com.jfrog.bintray.client.api.details.ObjectMapperHelper;
 import com.jfrog.bintray.client.api.details.VersionDetails;
@@ -49,15 +50,16 @@ class VersionHandleImpl implements VersionHandle {
     }
 
     @Override
-    public Version get() throws IOException, BintrayCallException {
+    public Version get() throws BintrayCallException, IOException {
         HttpResponse response = bintrayHandle.get(getVersionUri(), null);
         VersionDetails versionDetails;
-        InputStream jsonContentStream = response.getEntity().getContent();
         ObjectMapper mapper = ObjectMapperHelper.objectMapper;
         try {
+            InputStream jsonContentStream = response.getEntity().getContent();
             versionDetails = mapper.readValue(jsonContentStream, VersionDetails.class);
         } catch (IOException e) {
-            log.error("Can't process the json file: " + e.getMessage());
+            log.debug("{}", e);
+            log.error("Can't process the json file: {}", e.getMessage());
             throw e;
         }
         return new VersionImpl(versionDetails);
@@ -127,7 +129,7 @@ class VersionHandleImpl implements VersionHandle {
     }
 
     @Override
-    public VersionHandle upload(Map<String, InputStream> content) throws BintrayCallException {
+    public VersionHandle upload(Map<String, InputStream> content) throws MultipleBintrayCallException {
         Map<String, InputStream> uriConvertedContent = new HashMap<>();
         for (String path : content.keySet()) {
             uriConvertedContent.put(getCurrentVersionContentUri() + path, content.get(path));
@@ -167,9 +169,8 @@ class VersionHandleImpl implements VersionHandle {
 
     @Override
     public VersionHandle sign(String passphrase) throws BintrayCallException {
-        Map<String, String> headers = null;
-        if ((passphrase == null) || passphrase.equals("")) {
-            headers = new HashMap<>();
+        Map<String, String> headers = new HashMap<>();
+        if (!(passphrase == null) && !passphrase.equals("")) {
             headers.put(GPG_SIGN_HEADER, passphrase);
         }
         bintrayHandle.post(getCurrentVersionGpgUri(), headers);

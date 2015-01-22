@@ -18,6 +18,8 @@ public interface PackageHandle extends Handle<Pkg> {
 
     VersionHandle version(String versionName);
 
+    Pkg get() throws IOException, BintrayCallException;
+
     PackageHandle update(PackageDetails packageDetails) throws IOException, BintrayCallException;
 
     PackageHandle delete() throws BintrayCallException;
@@ -33,6 +35,8 @@ public interface PackageHandle extends Handle<Pkg> {
     PackageHandle updateAttributes(PackageDetails packageDetails) throws IOException, BintrayCallException;
 
     PackageHandle updateAttributes(List<Attribute> attributes) throws IOException, BintrayCallException;
+
+    String name();
 
     String getCurrentPackageUri();
 }
