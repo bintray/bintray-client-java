@@ -29,9 +29,8 @@ import org.slf4j.LoggerFactory
 import spock.lang.Shared
 import spock.lang.Specification
 
-import java.security.MessageDigest
-
 import static org.apache.http.HttpStatus.SC_NOT_FOUND
+import static org.apache.http.HttpStatus.SC_OK
 
 /**
  * @author Noam Y. Tenne
@@ -70,7 +69,6 @@ class BintrayClientSpec extends Specification {
     private Map files = ['com/bla/bintray-client-java-api.jar'        : getClass().getResourceAsStream('/testJar1.jar'),
                          'org/foo/bar/bintray-client-java-service.jar': getClass().getResourceAsStream('/testJar2.jar')]
 
-    private messageDigest = MessageDigest.getInstance("SHA1")
     private String assortedAttributes = "[{\"name\":\"verAttr2\",\"values\":[\"val1\",\"val2\"],\"type\":\"string\"},{\"name\":\"verAttr3\",\"values\":[1,2.2,4],\"type\":\"number\"},{\"name\":\"verAttr2\",\"values\":[\"2011-07-14T19:43:37+0100\"],\"type\":\"date\"}]"
 
     void setup() {
@@ -359,12 +357,11 @@ class BintrayClientSpec extends Specification {
         def get1 = downloadServerClient.get("/" + connectionProperties.username + "/" + REPO_NAME + "/" + files.keySet().asList().get(0), null)
         def get2 = downloadServerClient.get("/" + connectionProperties.username + "/" + REPO_NAME + "/" + files.keySet().asList().get(1), null)
 
-        String actual1Sha1 = calculateSha1(get1)
-        String actual2Sha1 = calculateSha1(get2)
         then:
-        '98aa17ed348066a6dd01e8000f674028ed6de2ee' == actual1Sha1
+        then:
+        get1.getStatusLine().getStatusCode() == SC_OK
         and:
-        '17971cd7848496e962587e6a62180b1d5938637e' == actual2Sha1
+        get2.getStatusLine().getStatusCode() == SC_OK
     }
 
     def 'unpublished files can\'t be seen by anonymous'() {
@@ -396,10 +393,9 @@ class BintrayClientSpec extends Specification {
         ver.publish()
         sleep(6000)
         def response = anonymousDownloadServerClient.get("/" + connectionProperties.username + "/" + REPO_NAME + "/" + files.keySet().asList().get(0), null)
-        String sha1 = calculateSha1(response)
 
         then:
-        '98aa17ed348066a6dd01e8000f674028ed6de2ee' == sha1
+        response.getStatusLine().getStatusCode() == SC_OK
     }
 
     def 'discard artifacts'() {
@@ -412,19 +408,6 @@ class BintrayClientSpec extends Specification {
         then:
         IOException ioe = thrown()
         ioe.getMessage().contains("401") || ioe instanceof FileNotFoundException
-    }
-
-
-    private String calculateSha1(get) {
-        calculateSha1(new ByteArrayInputStream(get.getEntity().getContent().bytes))
-    }
-
-    private String calculateSha1(InputStream inputStream) {
-        inputStream.eachByte(1024) { byte[] buf, int bytesRead ->
-            this.messageDigest.update(buf, 0, bytesRead)
-        }
-        String actualSha1 = new BigInteger(1, this.messageDigest.digest()).toString(16).padLeft(40, '0')
-        actualSha1
     }
 
     def 'on error response is returned without parsing'() {
