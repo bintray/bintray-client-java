@@ -7,6 +7,7 @@ import com.jfrog.bintray.client.impl.BintrayClient;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.*;
 import org.apache.http.client.ResponseHandler;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.*;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.client.utils.HttpClientUtils;
@@ -92,6 +93,16 @@ public class BintrayImpl implements Bintray {
     public HttpResponse head(String uri, Map<String, String> headers) throws BintrayCallException {
         HttpHead headRequest = new HttpHead(createUrl(uri));
         return setHeadersAndExecute(headRequest, headers);
+    }
+
+    //A special version of post with a much longer timeout to avoid long sign request timeouts
+    public HttpResponse sign(String uri, Map<String, String> headers) throws BintrayCallException {
+        HttpClientContext context = new HttpClientContext();
+        RequestConfig.Builder builder = RequestConfig.custom();
+        builder.setSocketTimeout(300000);
+        HttpPost postRequest = new HttpPost(createUrl(uri));
+        setHeaders(postRequest, headers);
+        return execute(postRequest, context);
     }
 
     public HttpResponse post(String uri, Map<String, String> headers) throws BintrayCallException {
@@ -227,12 +238,16 @@ public class BintrayImpl implements Bintray {
 
     private HttpResponse setHeadersAndExecute(HttpUriRequest request, Map<String, String> headers) throws BintrayCallException {
         setHeaders(request, headers);
-        return execute(request);
+        return execute(request, null);
     }
 
-    private HttpResponse execute(HttpUriRequest request) throws BintrayCallException {
+    private HttpResponse execute(HttpUriRequest request, HttpClientContext context) throws BintrayCallException {
         try {
-            return client.execute(request, responseHandler);
+            if (context != null) {
+                return client.execute(request, responseHandler, context);
+            } else {
+                return client.execute(request, responseHandler);
+            }
         } catch (BintrayCallException bce) {
             log.debug("{}", bce);
             throw bce;

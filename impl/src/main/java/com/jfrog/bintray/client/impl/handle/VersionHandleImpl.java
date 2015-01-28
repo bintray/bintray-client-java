@@ -173,7 +173,7 @@ class VersionHandleImpl implements VersionHandle {
         if (!(passphrase == null) && !passphrase.equals("")) {
             headers.put(GPG_SIGN_HEADER, passphrase);
         }
-        bintrayHandle.post(getCurrentVersionGpgUri(), headers);
+        bintrayHandle.sign(getCurrentVersionGpgUri(), headers);
         return null;
     }
 
