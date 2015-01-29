@@ -7,7 +7,6 @@ import com.jfrog.bintray.client.impl.BintrayClient;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.*;
 import org.apache.http.client.ResponseHandler;
-import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.*;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.client.utils.HttpClientUtils;
@@ -95,14 +94,37 @@ public class BintrayImpl implements Bintray {
         return setHeadersAndExecute(headRequest, headers);
     }
 
-    //A special version of post with a much longer timeout to avoid long sign request timeouts
+    /**
+     * Executes a sign request using the ExecutorService to avoid timing out
+     *
+     * @throws BintrayCallException
+     */
     public HttpResponse sign(String uri, Map<String, String> headers) throws BintrayCallException {
-        HttpClientContext context = new HttpClientContext();
-        RequestConfig.Builder builder = RequestConfig.custom();
-        builder.setSocketTimeout(300000);
-        HttpPost postRequest = new HttpPost(createUrl(uri));
-        setHeaders(postRequest, headers);
-        return execute(postRequest, context);
+        HttpPost signRequest = new HttpPost(createUrl(uri));
+        setHeaders(signRequest, headers);
+        RequestRunner runner = new RequestRunner(signRequest, client, responseHandler);
+        Future<String> signResponse = executorService.submit(runner);
+
+        try {
+            signResponse.get();
+        } catch (Exception e) {
+            BintrayCallException bce;
+            if (e.getCause() instanceof BintrayCallException) {
+                bce = (BintrayCallException) e.getCause();
+            } else {
+                bce = new BintrayCallException(400, e.getMessage(), (e.getCause() == null) ? "" : e.getCause().getMessage());
+            }
+            log.error(bce.toString());
+            log.debug("{}", e);
+            throw bce;
+        }
+
+        //Return ok
+        String entity = "Signing the version was successful";
+        HttpResponse response = DefaultHttpResponseFactory.INSTANCE.newHttpResponse(
+                new ProtocolVersion("HTTP", 1, 1), HttpStatus.SC_CREATED, new HttpClientContext());
+        response.setEntity(new StringEntity(entity, Charset.forName("UTF-8")));
+        return response;
     }
 
     public HttpResponse post(String uri, Map<String, String> headers) throws BintrayCallException {
@@ -172,11 +194,11 @@ public class BintrayImpl implements Bintray {
      * @return A list of all errors thrown while performing the requests or empty list if all requests finished OK
      */
     private HttpResponse put(List<HttpPut> requests) throws MultipleBintrayCallException {
-        List<PutRequestRunner> runners = new ArrayList<>();
+        List<RequestRunner> runners = new ArrayList<>();
         List<Future<String>> executions = new ArrayList<>();
         List<BintrayCallException> errors = new ArrayList<>();
         for (HttpPut request : requests) {
-            PutRequestRunner runner = new PutRequestRunner(request, client, responseHandler);
+            RequestRunner runner = new RequestRunner(request, client, responseHandler);
             runners.add(runner);
         }
         try {
@@ -262,14 +284,14 @@ public class BintrayImpl implements Bintray {
     /**
      * A callable that executes a single put request, returns a String containing an error or '200' if successful
      */
-    private static class PutRequestRunner implements Callable<String> {
+    private static class RequestRunner implements Callable<String> {
 
-        private final HttpPut request;
+        private final HttpRequestBase request;
         private final CloseableHttpClient client;
         private final HttpClientContext context;
         private final ResponseHandler<HttpResponse> responseHandler;
 
-        public PutRequestRunner(HttpPut request, CloseableHttpClient client, ResponseHandler<HttpResponse> responseHandler) {
+        public RequestRunner(HttpRequestBase request, CloseableHttpClient client, ResponseHandler<HttpResponse> responseHandler) {
             this.request = request;
             this.client = client;
             this.context = HttpClientContext.create();
@@ -278,9 +300,14 @@ public class BintrayImpl implements Bintray {
 
         @Override
         public String call() throws BintrayCallException {
-            String pushPath = request.getURI().getPath().substring(9); //Substring cuts the '/content/' part from the URI
-            log.info("Pushing " + pushPath);
-            StringBuilder errorResultBuilder = new StringBuilder(" Pushing " + pushPath + " failed: ");
+            StringBuilder errorResultBuilder;
+            if (request instanceof HttpPut) {
+                String pushPath = request.getURI().getPath().substring(9); //Substring cuts the '/content/' part from the URI
+                log.info("Pushing " + pushPath);
+                errorResultBuilder = new StringBuilder(" Pushing " + pushPath + " failed: ");
+            } else {
+                errorResultBuilder = new StringBuilder(request.getMethod() + " " + request.getURI().getPath() + " failed:");
+            }
             HttpResponse response;
             try {
                 response = client.execute(request, responseHandler, context);
