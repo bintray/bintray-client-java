@@ -30,15 +30,16 @@ import java.util.concurrent.*;
  */
 public class BintrayImpl implements Bintray {
     private static final Logger log = LoggerFactory.getLogger(BintrayImpl.class);
-    ExecutorService executorService = Executors.newCachedThreadPool();
+    ExecutorService executorService;
     private CloseableHttpClient client;
     private ResponseHandler<HttpResponse> responseHandler = new BintrayResponseHandler();
     private String baseUrl;
 
 
-    public BintrayImpl(CloseableHttpClient client, String baseUrl) {
+    public BintrayImpl(CloseableHttpClient client, String baseUrl, int threadPoolSize) {
         this.client = client;
         this.baseUrl = (baseUrl == null || baseUrl.isEmpty()) ? BintrayClient.BINTRAY_API_URL : baseUrl;
+        this.executorService = Executors.newFixedThreadPool(threadPoolSize);
     }
 
     static public void addContentTypeJsonHeader(Map<String, String> headers) {
@@ -202,7 +203,7 @@ public class BintrayImpl implements Bintray {
             runners.add(runner);
         }
         try {
-            executions = executorService.invokeAll(runners, BintrayClient.DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS);
+            executions = executorService.invokeAll(runners, 10, TimeUnit.MINUTES);
         } catch (InterruptedException e) {
             BintrayCallException bce = new BintrayCallException(400, e.getMessage(), (e.getCause() == null) ? "" : e.getCause().getMessage());
             log.error(bce.toString());
@@ -225,7 +226,7 @@ public class BintrayImpl implements Bintray {
                             bce = new BintrayCallException(400, e.getMessage(), (e.getCause() == null) ? "" : e.getCause().getMessage());
                         }
                         log.error(bce.toString());
-                        log.debug("{}", e);
+                        log.debug("{}", e.getMessage(), e);
                         errors.add(bce);
                     } finally {
                         executionIter.remove();     //Remove completed execution from iteration
@@ -312,15 +313,18 @@ public class BintrayImpl implements Bintray {
             try {
                 response = client.execute(request, responseHandler, context);
             } catch (BintrayCallException bce) {
-                log.debug("{}", bce);
+                log.debug("{}", bce.getMessage(), bce);
                 errorResultBuilder.append(bce.getMessage());
                 bce.setMessage(errorResultBuilder.toString());
                 throw bce;
             } catch (IOException ioe) {
-                log.debug("{}", ioe);
-                String cause = (ioe.getCause() == null) ? "" : " : " + ioe.getCause().getMessage();
+                log.debug("IOException occured: '{}'", ioe.getMessage(), ioe);
+                String cause = (ioe.getCause() == null) ? ((ioe.getMessage() != null && !ioe.getMessage().equals("")) ? ioe.getMessage() : ioe.toString())
+                        : " : " + ((ioe.getCause().getMessage() != null && !ioe.getCause().getMessage().equals("")) ? ioe.getCause().getMessage() : ioe.getCause().toString());
                 errorResultBuilder.append(ioe.getMessage()).append(cause);
                 throw new BintrayCallException(HttpStatus.SC_BAD_REQUEST, ioe.getMessage(), errorResultBuilder.toString());
+            } finally {
+                request.releaseConnection();
             }
             if (statusNotOk(response.getStatusLine().getStatusCode())) {
                 BintrayCallException bce = new BintrayCallException(response);
