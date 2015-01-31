@@ -163,17 +163,17 @@ class VersionHandleImpl implements VersionHandle {
 
 
     @Override
-    public VersionHandle sign() throws BintrayCallException {
-        return sign(null);
+    public VersionHandle sign(int fileCount) throws BintrayCallException {
+        return sign(null, fileCount);
     }
 
     @Override
-    public VersionHandle sign(String passphrase) throws BintrayCallException {
+    public VersionHandle sign(String passphrase, int fileCount) throws BintrayCallException {
         Map<String, String> headers = new HashMap<>();
         if (!(passphrase == null) && !passphrase.equals("")) {
             headers.put(GPG_SIGN_HEADER, passphrase);
         }
-        bintrayHandle.sign(getCurrentVersionGpgUri(), headers);
+        bintrayHandle.sign(getCurrentVersionGpgUri(), headers, fileCount);
         return null;
     }
 

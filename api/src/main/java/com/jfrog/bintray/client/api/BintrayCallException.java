@@ -32,18 +32,21 @@ public class BintrayCallException extends HttpResponseException {
         super(response.getStatusLine().getStatusCode(), response.getStatusLine().getReasonPhrase());
         String message = " ";
         String entity = null;
-        try {
-            entity = IOUtils.toString(response.getEntity().getContent());
-            ObjectMapper mapper = ObjectMapperHelper.objectMapper;
-            JsonNode node = mapper.readTree(entity);
-            message = node.get("message").getTextValue();
-        } catch (IOException | NullPointerException e) {
-            //Null entity?
-            if (entity != null) {
-                message = entity;
+        int statusCode = response.getStatusLine().getStatusCode();
+        if (response.getEntity() != null && statusCode != 405 && statusCode != 500) {
+            try {
+                entity = IOUtils.toString(response.getEntity().getContent());
+                ObjectMapper mapper = ObjectMapperHelper.objectMapper;
+                JsonNode node = mapper.readTree(entity);
+                message = node.get("message").getTextValue();
+            } catch (IOException | NullPointerException e) {
+                //Null entity?
+                if (entity != null) {
+                    message = entity;
+                }
             }
         }
-        this.statusCode = response.getStatusLine().getStatusCode();
+        this.statusCode = statusCode;
         this.reason = response.getStatusLine().getReasonPhrase();
         this.message = message;
     }

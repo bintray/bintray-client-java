@@ -7,6 +7,7 @@ import com.jfrog.bintray.client.impl.BintrayClient;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.*;
 import org.apache.http.client.ResponseHandler;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.*;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.client.utils.HttpClientUtils;
@@ -22,7 +23,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 
 /**
@@ -34,12 +38,14 @@ public class BintrayImpl implements Bintray {
     private CloseableHttpClient client;
     private ResponseHandler<HttpResponse> responseHandler = new BintrayResponseHandler();
     private String baseUrl;
+    private int signRequestTimeoutPerFile;
 
 
-    public BintrayImpl(CloseableHttpClient client, String baseUrl, int threadPoolSize) {
+    public BintrayImpl(CloseableHttpClient client, String baseUrl, int threadPoolSize, int signRequestTimeoutPerFile) {
         this.client = client;
         this.baseUrl = (baseUrl == null || baseUrl.isEmpty()) ? BintrayClient.BINTRAY_API_URL : baseUrl;
         this.executorService = Executors.newFixedThreadPool(threadPoolSize);
+        this.signRequestTimeoutPerFile = signRequestTimeoutPerFile;
     }
 
     static public void addContentTypeJsonHeader(Map<String, String> headers) {
@@ -96,16 +102,20 @@ public class BintrayImpl implements Bintray {
     }
 
     /**
-     * Executes a sign request using the ExecutorService to avoid timing out
+     * Executes a sign request using the ExecutorService and uses the file count to set a timeout to avoid timing out
+     * on long requests
      *
      * @throws BintrayCallException
      */
-    public HttpResponse sign(String uri, Map<String, String> headers) throws BintrayCallException {
+    public HttpResponse sign(String uri, Map<String, String> headers, int fileCount) throws BintrayCallException {
         HttpPost signRequest = new HttpPost(createUrl(uri));
         setHeaders(signRequest, headers);
+        //Set signRequestTimeoutPerFile * fileCount timeout on request
+        signRequest.setConfig(RequestConfig.custom().setSocketTimeout(signRequestTimeoutPerFile * fileCount)
+                .setConnectionRequestTimeout(signRequestTimeoutPerFile * fileCount)
+                .setConnectTimeout(signRequestTimeoutPerFile * fileCount).build());
         RequestRunner runner = new RequestRunner(signRequest, client, responseHandler);
         Future<String> signResponse = executorService.submit(runner);
-
         try {
             signResponse.get();
         } catch (Exception e) {
@@ -113,10 +123,11 @@ public class BintrayImpl implements Bintray {
             if (e.getCause() instanceof BintrayCallException) {
                 bce = (BintrayCallException) e.getCause();
             } else {
-                bce = new BintrayCallException(400, e.getMessage(), (e.getCause() == null) ? "" : e.getCause().getMessage());
+                bce = new BintrayCallException(409, e.getMessage(), (e.getCause() == null) ? ""
+                        : ", " + e.getCause().toString() + " : " + e.getCause().getMessage());
             }
             log.error(bce.toString());
-            log.debug("{}", e);
+            log.debug("{}", e.getMessage(), e);
             throw bce;
         }
 
@@ -203,11 +214,12 @@ public class BintrayImpl implements Bintray {
             runners.add(runner);
         }
         try {
-            executions = executorService.invokeAll(runners, 10, TimeUnit.MINUTES);
+            executions = executorService.invokeAll(runners);
         } catch (InterruptedException e) {
-            BintrayCallException bce = new BintrayCallException(400, e.getMessage(), (e.getCause() == null) ? "" : e.getCause().getMessage());
+            BintrayCallException bce = new BintrayCallException(409, e.getMessage(), (e.getCause() == null) ? ""
+                    : e.getCause().toString() + " : " + e.getCause().getMessage());
             log.error(bce.toString());
-            log.debug("{}", e);
+            log.debug("{}", e.getMessage(), e);
             errors.add(bce);
         }
 
@@ -272,12 +284,12 @@ public class BintrayImpl implements Bintray {
                 return client.execute(request, responseHandler);
             }
         } catch (BintrayCallException bce) {
-            log.debug("{}", bce);
+            log.debug("{}", bce.toString(), bce);
             throw bce;
         } catch (IOException ioe) {
             //Underlying IOException form the client
-            String underlyingCause = (ioe.getCause() == null) ? "" : ioe.getCause().getMessage();
-            log.debug("{}", ioe);
+            String underlyingCause = (ioe.getCause() == null) ? "" : ioe.toString() + " : " + ioe.getCause().getMessage();
+            log.debug("{}", ioe.getMessage(), ioe);
             throw new BintrayCallException(400, ioe.getMessage(), underlyingCause);
         }
     }
@@ -307,7 +319,7 @@ public class BintrayImpl implements Bintray {
                 log.info("Pushing " + pushPath);
                 errorResultBuilder = new StringBuilder(" Pushing " + pushPath + " failed: ");
             } else {
-                errorResultBuilder = new StringBuilder(request.getMethod() + " " + request.getURI().getPath() + " failed:");
+                errorResultBuilder = new StringBuilder(request.getMethod() + " " + request.getURI().getPath() + " failed: ");
             }
             HttpResponse response;
             try {
@@ -319,9 +331,9 @@ public class BintrayImpl implements Bintray {
                 throw bce;
             } catch (IOException ioe) {
                 log.debug("IOException occured: '{}'", ioe.getMessage(), ioe);
-                String cause = (ioe.getCause() == null) ? ((ioe.getMessage() != null && !ioe.getMessage().equals("")) ? ioe.getMessage() : ioe.toString())
-                        : " : " + ((ioe.getCause().getMessage() != null && !ioe.getCause().getMessage().equals("")) ? ioe.getCause().getMessage() : ioe.getCause().toString());
-                errorResultBuilder.append(ioe.getMessage()).append(cause);
+                String cause = (ioe.getCause() != null) ? (", caused by: " + ioe.getCause().toString() + " : "
+                        + ioe.getCause().getMessage()) : "";
+                errorResultBuilder.append(ioe.toString()).append(" : ").append(ioe.getMessage()).append(cause);
                 throw new BintrayCallException(HttpStatus.SC_BAD_REQUEST, ioe.getMessage(), errorResultBuilder.toString());
             } finally {
                 request.releaseConnection();
@@ -366,7 +378,8 @@ public class BintrayImpl implements Bintray {
                 }
             }
 
-            HttpResponse newResponse = DefaultHttpResponseFactory.INSTANCE.newHttpResponse(response.getStatusLine(), new HttpClientContext());
+            HttpResponse newResponse = DefaultHttpResponseFactory.INSTANCE.newHttpResponse(response.getStatusLine(),
+                    new HttpClientContext());
             newResponse.setEntity(new StringEntity(entity, Charset.forName("UTF-8")));
             newResponse.setHeaders(response.getAllHeaders());
             return newResponse;

@@ -18,10 +18,12 @@ public class BintrayClient {
     public static final String BINTRAY_API_URL = "https://api.bintray.com";
     public static final String USER_AGENT = "BintrayJavaClient/0.5"; // TODO: make dynamic
     private static final int DEFAULT_THREAD_POOL_SIZE = 5; //Don't mess with this - its here for a reason
+    private static final int DEFAULT_SIGN_REQUEST_TIMEOUT_PER_FILE = 90000; //1.5 min per file
 
     //Mainly used by Artifactory to avoid all of the configuration, but you can specify your own too
-    static public Bintray create(CloseableHttpClient preConfiguredClient, String url, int threadPoolSize) {
-        return new BintrayImpl(preConfiguredClient, url, threadPoolSize);
+    static public Bintray create(CloseableHttpClient preConfiguredClient, String url, int threadPoolSize,
+                                 int signRequestTimeoutPerFile) {
+        return new BintrayImpl(preConfiguredClient, url, threadPoolSize, signRequestTimeoutPerFile);
     }
 
     /**
@@ -29,7 +31,8 @@ public class BintrayClient {
      */
     static public Bintray create(String userName, String apiKey) {
         UsernamePasswordCredentials creds = new UsernamePasswordCredentials(userName, apiKey);
-        return new BintrayImpl(createClient(creds, null, BINTRAY_API_URL), BINTRAY_API_URL, DEFAULT_THREAD_POOL_SIZE);
+        return new BintrayImpl(createClient(creds, null, BINTRAY_API_URL), BINTRAY_API_URL, DEFAULT_THREAD_POOL_SIZE,
+                DEFAULT_SIGN_REQUEST_TIMEOUT_PER_FILE);
     }
 
     /**
@@ -37,14 +40,16 @@ public class BintrayClient {
      */
     static public Bintray create(String url, String userName, String apiKey) {
         UsernamePasswordCredentials creds = new UsernamePasswordCredentials(userName, apiKey);
-        return new BintrayImpl(createClient(creds, null, BINTRAY_API_URL), BINTRAY_API_URL, DEFAULT_THREAD_POOL_SIZE);
+        return new BintrayImpl(createClient(creds, null, BINTRAY_API_URL), BINTRAY_API_URL, DEFAULT_THREAD_POOL_SIZE,
+                DEFAULT_SIGN_REQUEST_TIMEOUT_PER_FILE);
     }
 
     /**
      * Credentials with proxy
      */
     static public Bintray create(UsernamePasswordCredentials creds, HttpClientConfigurator.ProxyConfig proxyConfig) {
-        return new BintrayImpl(createClient(creds, proxyConfig, BINTRAY_API_URL), BINTRAY_API_URL, DEFAULT_THREAD_POOL_SIZE);
+        return new BintrayImpl(createClient(creds, proxyConfig, BINTRAY_API_URL), BINTRAY_API_URL,
+                DEFAULT_THREAD_POOL_SIZE, DEFAULT_SIGN_REQUEST_TIMEOUT_PER_FILE);
     }
 
     /**
@@ -53,7 +58,8 @@ public class BintrayClient {
     static public Bintray create(String bintrayUserName, String bintrayApiKey,
                                  HttpClientConfigurator.ProxyConfig proxyConfig, String url) {
         UsernamePasswordCredentials creds = new UsernamePasswordCredentials(bintrayUserName, bintrayApiKey);
-        return new BintrayImpl(createClient(creds, proxyConfig, url), url, DEFAULT_THREAD_POOL_SIZE);
+        return new BintrayImpl(createClient(creds, proxyConfig, url), url, DEFAULT_THREAD_POOL_SIZE,
+                DEFAULT_SIGN_REQUEST_TIMEOUT_PER_FILE);
     }
 
 

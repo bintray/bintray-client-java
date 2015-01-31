@@ -42,9 +42,9 @@ public interface VersionHandle extends Handle<Version> {
 
     VersionHandle discard() throws BintrayCallException;
 
-    VersionHandle sign(String passphrase) throws BintrayCallException;
+    VersionHandle sign(String passphrase, int fileCount) throws BintrayCallException;
 
-    VersionHandle sign() throws BintrayCallException;
+    VersionHandle sign(int fileCount) throws BintrayCallException;
 
     String getVersionUri();
 }

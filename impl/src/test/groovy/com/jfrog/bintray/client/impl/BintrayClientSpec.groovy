@@ -146,7 +146,7 @@ class BintrayClientSpec extends Specification {
     private BintrayImpl createClient(String url = "https://api.bintray.com") {
         UsernamePasswordCredentials creds = new UsernamePasswordCredentials(connectionProperties.username as String, connectionProperties.apiKey as String)
         HttpClientConfigurator conf = new HttpClientConfigurator()
-        return new BintrayImpl(conf.hostFromUrl(url).noRetry().authentication(creds).getClient(), url, 5)
+        return new BintrayImpl(conf.hostFromUrl(url).noRetry().authentication(creds).getClient(), url, 5, 90000)
     }
 
     def 'Connection is successful and subject has correct username and avatar'() {
@@ -369,7 +369,7 @@ class BintrayClientSpec extends Specification {
         sleep(10000) //wait for previous deletions to propagate
         def ver = bintray.subject(connectionProperties.username).repository(REPO_NAME).createPkg(pkgBuilder).createVersion(versionBuilder)
         HttpClientConfigurator conf = new HttpClientConfigurator();
-        def anonymousDownloadServerClient = new BintrayImpl(conf.hostFromUrl("https://dl.bintray.com").noRetry().noCookies().getClient(), "https://dl.bintray.com", 5)
+        def anonymousDownloadServerClient = new BintrayImpl(conf.hostFromUrl("https://dl.bintray.com").noRetry().noCookies().getClient(), "https://dl.bintray.com", 5, 90000)
 
         when:
         sleep(6000)
@@ -386,7 +386,7 @@ class BintrayClientSpec extends Specification {
         setup:
         VersionHandle ver = bintray.subject(connectionProperties.username).repository(REPO_NAME).createPkg(pkgBuilder).createVersion(versionBuilder).upload(this.files)
         HttpClientConfigurator conf = new HttpClientConfigurator();
-        def anonymousDownloadServerClient = new BintrayImpl(conf.hostFromUrl("https://dl.bintray.com").noRetry().getClient(), "https://dl.bintray.com", 5)
+        def anonymousDownloadServerClient = new BintrayImpl(conf.hostFromUrl("https://dl.bintray.com").noRetry().getClient(), "https://dl.bintray.com", 5, 90000)
 
         when:
         sleep(2000)
