@@ -40,7 +40,7 @@ public class BintrayClient {
      */
     static public Bintray create(String url, String userName, String apiKey) {
         UsernamePasswordCredentials creds = new UsernamePasswordCredentials(userName, apiKey);
-        return new BintrayImpl(createClient(creds, null, BINTRAY_API_URL), BINTRAY_API_URL, DEFAULT_THREAD_POOL_SIZE,
+        return new BintrayImpl(createClient(creds, null, url), url, DEFAULT_THREAD_POOL_SIZE,
                 DEFAULT_SIGN_REQUEST_TIMEOUT_PER_FILE);
     }
 
@@ -66,14 +66,15 @@ public class BintrayClient {
     private static CloseableHttpClient createClient(UsernamePasswordCredentials creds,
                                                     HttpClientConfigurator.ProxyConfig proxyConfig, String url) {
 
-        String baseUrl = (url == null || url.isEmpty()) ? BINTRAY_API_URL : url;
         return new HttpClientConfigurator()
-                .hostFromUrl(baseUrl)
+                .hostFromUrl(url)
                 .soTimeout(DEFAULT_TIMEOUT)
                 .connectionTimeout(DEFAULT_TIMEOUT)
                 .noRetry()
                 .proxy(proxyConfig)
                 .authentication(creds)
+                .maxTotalConnections(50)
+                .defaultMaxConnectionsPerHost(30)
                 .getClient();
     }
 }

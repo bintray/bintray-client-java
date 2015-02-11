@@ -3,7 +3,6 @@ package com.jfrog.bintray.client.impl.handle;
 import com.jfrog.bintray.client.api.BintrayCallException;
 import com.jfrog.bintray.client.api.MultipleBintrayCallException;
 import com.jfrog.bintray.client.api.handle.*;
-import com.jfrog.bintray.client.impl.BintrayClient;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.*;
 import org.apache.http.client.ResponseHandler;
@@ -43,7 +42,7 @@ public class BintrayImpl implements Bintray {
 
     public BintrayImpl(CloseableHttpClient client, String baseUrl, int threadPoolSize, int signRequestTimeoutPerFile) {
         this.client = client;
-        this.baseUrl = (baseUrl == null || baseUrl.isEmpty()) ? BintrayClient.BINTRAY_API_URL : baseUrl;
+        this.baseUrl = baseUrl;
         this.executorService = Executors.newFixedThreadPool(threadPoolSize);
         this.signRequestTimeoutPerFile = signRequestTimeoutPerFile;
     }

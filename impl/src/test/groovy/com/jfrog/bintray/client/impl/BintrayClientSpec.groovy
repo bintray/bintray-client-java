@@ -5,10 +5,12 @@ import ch.qos.logback.classic.Logger
 import ch.qos.logback.classic.LoggerContext
 import com.jfrog.bintray.client.api.BintrayCallException
 import com.jfrog.bintray.client.api.details.Attribute
+import com.jfrog.bintray.client.api.details.ObjectMapperHelper
 import com.jfrog.bintray.client.api.details.PackageDetails
 import com.jfrog.bintray.client.api.details.VersionDetails
 import com.jfrog.bintray.client.api.handle.Bintray
 import com.jfrog.bintray.client.api.handle.PackageHandle
+import com.jfrog.bintray.client.api.handle.RepositoryHandle
 import com.jfrog.bintray.client.api.handle.VersionHandle
 import com.jfrog.bintray.client.api.model.Pkg
 import com.jfrog.bintray.client.api.model.Subject
@@ -98,7 +100,7 @@ class BintrayClientSpec extends Specification {
         assert this.connectionProperties.username
         assert this.connectionProperties.apiKey
         assert this.connectionProperties.email
-        bintray = BintrayClient.create(this.connectionProperties.username as String, this.connectionProperties.apiKey as String, null, null)
+        bintray = BintrayClient.create(this.connectionProperties.username as String, this.connectionProperties.apiKey as String)
         restClient = createClient()
         pkgBuilder = new PackageDetails(PKG_NAME).description('bla-bla').labels(['l1', 'l2']).licenses(['Apache-2.0'])
         versionBuilder = new VersionDetails(VERSION).description('versionDesc')
@@ -412,7 +414,7 @@ class BintrayClientSpec extends Specification {
 
     def 'on error response is returned without parsing'() {
         setup:
-        Bintray wrongBintray = BintrayClient.create(this.connectionProperties.username as String, this.connectionProperties.apiKey as String, null, null)
+        Bintray wrongBintray = BintrayClient.create(this.connectionProperties.username as String, this.connectionProperties.apiKey as String)
         when:
         wrongBintray.subject('bla').get()
         then:
@@ -594,6 +596,70 @@ class BintrayClientSpec extends Specification {
             System.err.println("cleanup: " + e)
         }
 
+    }
+
+    def 'send empty values - verify they are not null'() {
+
+        String minimalPkgName = "MyPackage"
+
+        String minimalPkgJson = "{\n" +
+                "\t\t\"name\": \"" + minimalPkgName + "\",\n" +
+                "\t\t\"repo\": \"" + REPO_NAME + "\",\n" +
+                "\t\t\"owner\": \"" + connectionProperties.username + "\",\n" +
+                "\t\t\"desc\": \"\",\n" +
+                "\t\t\"website_url\": \"\",\n" +
+                "\t\t\"labels\": [],\n" +
+                "\t\t\"licenses\": [\"MIT\"]\n" +
+                "}"
+
+        String minimalVerJson = "{\n" +
+                "\t\t\"name\": \"3.3.3\",\n" +
+                "\t\t\"vcs_tag\": \"\",\n" +
+                "\t\t\"labels\": null,\n" +
+                "\t\t\"description\": \"\"\n" +
+                "}"
+
+        setup:
+        ObjectMapper mapper = ObjectMapperHelper.objectMapper
+
+        ArrayList<String> licenses = new ArrayList<>();
+        licenses.add("Apache-2.0")
+        PackageDetails newPkgDetails = new PackageDetails(minimalPkgName);
+        newPkgDetails.licenses(licenses);
+        newPkgDetails.setRepo(REPO_NAME)
+        newPkgDetails.setSubject(connectionProperties.username)
+        newPkgDetails.setVcsUrl("")
+        newPkgDetails.setDescription("")
+
+        VersionDetails newVerDetails = new VersionDetails("2.2.0")
+        newVerDetails.setDescription("")
+
+        PackageDetails pkgDetailsFromJson = mapper.readValue(minimalPkgJson, PackageDetails.class)
+        VersionDetails verDetailsFromJson = mapper.readValue(minimalVerJson, VersionDetails.class)
+
+        when:
+        RepositoryHandle repo = bintray.subject(connectionProperties.username).repository(REPO_NAME)
+
+        PackageHandle pkg = repo.createPkg(newPkgDetails)
+        VersionHandle ver = pkg.createVersion(newVerDetails)
+
+        pkg.update(pkgDetailsFromJson)
+        ver.update(verDetailsFromJson)
+
+        String pkgJsonContent = PackageImpl.getCreateUpdateJson(pkgDetailsFromJson);
+        String verJsonContent = VersionImpl.getCreateUpdateJson(verDetailsFromJson);
+
+        then:
+        pkgJsonContent.equals("{\"name\":\"MyPackage\",\"labels\":[],\"licenses\":[\"MIT\"],\"desc\":\"\",\"website_url\":\"\"}")
+        verJsonContent.contentEquals("{\"name\":\"3.3.3\",\"vcs_tag\":\"\"}")
+
+        cleanup:
+        try {
+            String cleanPkg = "/packages/" + connectionProperties.username + "/" + REPO_NAME + "/" + minimalPkgName
+            restClient.delete(cleanPkg, null)
+        } catch (Exception e) {
+            System.err.println("cleanup: " + e)
+        }
     }
 
 
