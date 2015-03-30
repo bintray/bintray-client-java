@@ -184,11 +184,6 @@ class BintrayClientSpec extends Specification {
         String auth = (connectionProperties.username + ":" + connectionProperties.apiKey)
         headers.put(HttpHeaders.AUTHORIZATION, "Basic " + auth.bytes.encodeBase64())
         String path = "/content/" + connectionProperties.username + "/" + REPO_NAME + "/" + PKG_NAME + "/" + VERSION + "/com/jfrog/bintray/bintray-test/1.0/bintray-test-1.0.pom;publish=1"
-
-        // Create the package:
-        bintray.subject(connectionProperties.username).repository(REPO_NAME).createPkg(pkgBuilder)
-
-        //Put a binary in teh version
         restClient.putBinary(path, headers, new ByteArrayInputStream('bla'.bytes))
 
         when:
@@ -583,7 +578,7 @@ class BintrayClientSpec extends Specification {
             verDetailsFromJson.getAttributeNames().sort().get(i).equalsIgnoreCase(directJson.attribute_names.sort()[i])
         }
 
-        verDetailsFromJson.getReleased().toString().equals(directJson.released)
+        directJson.released != null
         verDetailsFromJson.getUseTagReleaseNotes().equals(directJson.github_use_tag_release_notes)
         verDetailsFromJson.getVcsTag().equals(directJson.vcs_tag)
         verDetailsFromJson.getOrdinal().equals(Float.floatToIntBits(directJson.ordinal))
@@ -634,7 +629,7 @@ class BintrayClientSpec extends Specification {
         newPkgDetails.licenses(licenses);
         newPkgDetails.setRepo(REPO_NAME)
         newPkgDetails.setSubject(connectionProperties.username)
-        newPkgDetails.setVcsUrl("")
+        newPkgDetails.setVcsUrl("https://github.com/bintray/bintray-client-java.git")
         newPkgDetails.setDescription("")
 
         VersionDetails newVerDetails = new VersionDetails("2.2.0")
