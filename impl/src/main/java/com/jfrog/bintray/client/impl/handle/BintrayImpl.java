@@ -20,6 +20,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.util.*;
 import java.util.concurrent.Callable;
@@ -186,32 +188,9 @@ public class BintrayImpl implements Bintray {
     }
 
     public HttpResponse put(Map<String, InputStream> uriAndStreamMap, Map<String, String> headers) throws MultipleBintrayCallException {
-        List<HttpPut> requests = new ArrayList<>();
-        for (String uri : uriAndStreamMap.keySet()) {
-            HttpPut putRequest = new HttpPut(createUrl(uri));
-            HttpEntity requestEntity = new InputStreamEntity(uriAndStreamMap.get(uri));
-            putRequest.setEntity(requestEntity);
-            setHeaders(putRequest, headers);
-            requests.add(putRequest);
-        }
-        return put(requests);
-    }
-
-    /**
-     * Concurrently executes a list of {@link HttpPut} requests, which are not handled by the default response handler
-     * to avoid any BintrayCallExceptions being thrown before all requests have executed.
-     *
-     * @param requests requests to execute
-     * @return A list of all errors thrown while performing the requests or empty list if all requests finished OK
-     */
-    private HttpResponse put(List<HttpPut> requests) throws MultipleBintrayCallException {
-        List<RequestRunner> runners = new ArrayList<>();
         List<Future<String>> executions = new ArrayList<>();
         List<BintrayCallException> errors = new ArrayList<>();
-        for (HttpPut request : requests) {
-            RequestRunner runner = new RequestRunner(request, client, responseHandler);
-            runners.add(runner);
-        }
+        List<RequestRunner> runners = createPutRequestRunners(uriAndStreamMap, headers, errors);
         try {
             executions = executorService.invokeAll(runners);
         } catch (InterruptedException e) {
@@ -221,30 +200,7 @@ public class BintrayImpl implements Bintray {
             log.debug("{}", e.getMessage(), e);
             errors.add(bce);
         }
-
-        //Wait until all executions are done
-        while (!executions.isEmpty()) {
-            for (Iterator<Future<String>> executionIter = executions.iterator(); executionIter.hasNext(); ) {
-                Future<String> execution = executionIter.next();
-                if (execution.isDone()) {
-                    try {
-                        execution.get();
-                    } catch (Exception e) {
-                        BintrayCallException bce;
-                        if (e.getCause() instanceof BintrayCallException) {
-                            bce = (BintrayCallException) e.getCause();
-                        } else {
-                            bce = new BintrayCallException(400, e.getMessage(), (e.getCause() == null) ? "" : e.getCause().getMessage());
-                        }
-                        log.error(bce.toString());
-                        log.debug("{}", e.getMessage(), e);
-                        errors.add(bce);
-                    } finally {
-                        executionIter.remove();     //Remove completed execution from iteration
-                    }
-                }
-            }
-        }
+        collectResults(executions, errors);
 
         //Return ok or throw errors
         if (errors.isEmpty()) {
@@ -258,7 +214,68 @@ public class BintrayImpl implements Bintray {
         }
     }
 
-    private String createUrl(String uri) {
+    private List<RequestRunner> createPutRequestRunners(Map<String, InputStream> uriAndStreamMap, Map<String, String> headers, List<BintrayCallException> errors) {
+        List<RequestRunner> runners = new ArrayList<>();
+        List<HttpPut> requests = new ArrayList<>();
+        log.debug("Creating PUT requests and RequestRunners for execution");
+        for (String uri : uriAndStreamMap.keySet()) {
+            HttpPut putRequest;
+            try {
+                putRequest = new HttpPut(createUrl(uri));
+            } catch (BintrayCallException bce) {
+                errors.add(bce);
+                continue;
+            }
+            HttpEntity requestEntity = new InputStreamEntity(uriAndStreamMap.get(uri));
+            putRequest.setEntity(requestEntity);
+            setHeaders(putRequest, headers);
+            requests.add(putRequest);
+        }
+
+        for (HttpPut request : requests) {
+            RequestRunner runner = new RequestRunner(request, client, responseHandler);
+            runners.add(runner);
+        }
+        return runners;
+    }
+
+    private void collectResults(List<Future<String>> executions, List<BintrayCallException> errors) {
+        //Wait until all executions are done
+        while (!executions.isEmpty()) {
+            log.debug("Querying execution Futures for results");
+            for (Iterator<Future<String>> executionIter = executions.iterator(); executionIter.hasNext(); ) {
+                Future<String> execution = executionIter.next();
+                if (execution.isDone()) {
+                    try {
+                        String response = execution.get();
+                        log.debug("Got complete execution: {}", response);
+                    } catch (Exception e) {
+                        BintrayCallException bce;
+                        if (e.getCause() instanceof BintrayCallException) {
+                            bce = (BintrayCallException) e.getCause();
+                        } else {
+                            bce = new BintrayCallException(400, e.getMessage(), (e.getCause() == null) ? ""
+                                    : e.getCause().getMessage());
+                        }
+                        log.error(bce.toString());
+                        log.debug("{}", e.getMessage(), e);
+                        errors.add(bce);
+                    } finally {
+                        executionIter.remove();     //Remove completed execution from iteration
+                    }
+                }
+            }
+        }
+    }
+
+    private String createUrl(String uri) throws BintrayCallException {
+        try {
+            log.debug("Trying to encode uri: {}", uri);
+            URLEncoder.encode(uri, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            throw new BintrayCallException(HttpStatus.SC_BAD_REQUEST, "Malformed url, request will not be executed: ",
+                    e.getMessage());
+        }
         return baseUrl + "/" + uri;
     }
 
@@ -317,12 +334,14 @@ public class BintrayImpl implements Bintray {
             log.debug("Executing {} request to path '{}', with headers: {}", request.getMethod(), request.getURI(),
                     Arrays.toString(request.getAllHeaders()));
             StringBuilder errorResultBuilder;
+            String requestPath;
             if (request instanceof HttpPut) {
-                String pushPath = request.getURI().getPath().substring(9); //Substring cuts the '/content/' part from the URI
-                log.info("Pushing " + pushPath);
-                errorResultBuilder = new StringBuilder(" Pushing " + pushPath + " failed: ");
+                requestPath = request.getURI().getPath().substring(9); //Substring cuts the '/content/' part from the URI
+                log.info("Pushing " + requestPath);
+                errorResultBuilder = new StringBuilder(" Pushing " + requestPath + " failed: ");
             } else {
-                errorResultBuilder = new StringBuilder(request.getMethod() + " " + request.getURI().getPath() + " failed: ");
+                requestPath = request.getURI().getPath();
+                errorResultBuilder = new StringBuilder(request.getMethod() + " " + requestPath + " failed: ");
             }
             HttpResponse response;
             try {
@@ -347,7 +366,7 @@ public class BintrayImpl implements Bintray {
                 bce.setMessage(errorResultBuilder.toString());
                 throw bce;
             }
-            return String.valueOf(response.getStatusLine().getStatusCode());
+            return request.getMethod() + " " + requestPath + ": " + String.valueOf(response.getStatusLine().getStatusCode());
         }
     }
 

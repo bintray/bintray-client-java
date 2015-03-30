@@ -43,7 +43,10 @@ public interface Bintray extends Closeable {
     HttpResponse put(String uri, Map<String, String> headers, InputStream elementInputStream) throws BintrayCallException;
 
     /**
-     * PUT multiple items, executes requests concurrently.
+     * Concurrently executes a list of {@link org.apache.http.client.methods.HttpPut} requests, which are not handled by
+     * the default response handler to avoid any BintrayCallExceptions being thrown before all requests have executed.
+     *
+     * @return A list of all errors thrown while performing the requests or empty list if all requests finished OK
      */
     HttpResponse put(Map<String, InputStream> uriAndStreamMap, Map<String, String> headers) throws MultipleBintrayCallException;
 
