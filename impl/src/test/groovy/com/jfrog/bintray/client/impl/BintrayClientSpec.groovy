@@ -651,7 +651,7 @@ class BintrayClientSpec extends Specification {
         String verJsonContent = VersionImpl.getCreateUpdateJson(verDetailsFromJson);
 
         then:
-        pkgJsonContent.equals("{\"name\":\"MyPackage\",\"labels\":[],\"licenses\":[\"MIT\"],\"desc\":\"\",\"website_url\":\"\"}")
+        pkgJsonContent.equals("{\"name\":\"MyPackage\",\"labels\":[],\"licenses\":[\"MIT\"],\"desc\":\"\",\"website_url\":\"\",\"vcs_url\":\"https://github.com/bintray/bintray-client-java.git\"}")
         verJsonContent.contentEquals("{\"name\":\"3.3.3\",\"vcs_tag\":\"\"}")
 
         cleanup:
