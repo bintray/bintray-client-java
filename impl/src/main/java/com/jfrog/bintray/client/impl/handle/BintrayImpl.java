@@ -276,6 +276,8 @@ public class BintrayImpl implements Bintray {
     }
 
     private HttpResponse execute(HttpUriRequest request, HttpClientContext context) throws BintrayCallException {
+        log.debug("Executing {} request to path '{}', with headers: {}", request.getMethod(), request.getURI(),
+                Arrays.toString(request.getAllHeaders()));
         try {
             if (context != null) {
                 return client.execute(request, responseHandler, context);
@@ -312,6 +314,8 @@ public class BintrayImpl implements Bintray {
 
         @Override
         public String call() throws BintrayCallException {
+            log.debug("Executing {} request to path '{}', with headers: {}", request.getMethod(), request.getURI(),
+                    Arrays.toString(request.getAllHeaders()));
             StringBuilder errorResultBuilder;
             if (request instanceof HttpPut) {
                 String pushPath = request.getURI().getPath().substring(9); //Substring cuts the '/content/' part from the URI
@@ -329,7 +333,7 @@ public class BintrayImpl implements Bintray {
                 bce.setMessage(errorResultBuilder.toString());
                 throw bce;
             } catch (IOException ioe) {
-                log.debug("IOException occured: '{}'", ioe.getMessage(), ioe);
+                log.debug("IOException occurred: '{}'", ioe.getMessage(), ioe);
                 String cause = (ioe.getCause() != null) ? (", caused by: " + ioe.getCause().toString() + " : "
                         + ioe.getCause().getMessage()) : "";
                 errorResultBuilder.append(ioe.toString()).append(" : ").append(ioe.getMessage()).append(cause);
