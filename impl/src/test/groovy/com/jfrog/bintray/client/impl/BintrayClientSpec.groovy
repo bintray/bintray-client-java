@@ -102,7 +102,7 @@ class BintrayClientSpec extends Specification {
         assert this.connectionProperties.email
         bintray = BintrayClient.create(this.connectionProperties.username as String, this.connectionProperties.apiKey as String)
         restClient = createClient()
-        pkgBuilder = new PackageDetails(PKG_NAME).description('bla-bla').labels(['l1', 'l2']).licenses(['Apache-2.0'])
+        pkgBuilder = new PackageDetails(PKG_NAME).description('bla-bla').labels(['l1', 'l2']).licenses(['Apache-2.0']).vcsUrl("https://github.com/bintray/bintray-client-java.git")
         versionBuilder = new VersionDetails(VERSION).description('versionDesc')
         pkgJson = "{\n" +
                 "\t\t\"name\": \"" + tempPkgName + "\",\n" +
@@ -128,7 +128,7 @@ class BintrayClientSpec extends Specification {
                 "    \"owner\": \"" + connectionProperties.username + "\",\n" +
                 "    \"labels\": [\"cool\",\"awesome\",\"gorilla\"],\n" +
                 "    \"attribute_names\": [\"verAtt1\",\"verAtt2\",\"verAtt3\"],\n" +
-                "    \"released\": \"2015-01-08\",\n" +
+                "    \"released\": \" 2015-01-07T18:00:00.000-06:00\",\n" +
                 "    \"github_use_tag_release_notes\": false,\n" +
                 "    \"vcs_tag\": \"3.8\",\n" +
                 "    \"ordinal\": 0,\n" +
@@ -184,6 +184,11 @@ class BintrayClientSpec extends Specification {
         String auth = (connectionProperties.username + ":" + connectionProperties.apiKey)
         headers.put(HttpHeaders.AUTHORIZATION, "Basic " + auth.bytes.encodeBase64())
         String path = "/content/" + connectionProperties.username + "/" + REPO_NAME + "/" + PKG_NAME + "/" + VERSION + "/com/jfrog/bintray/bintray-test/1.0/bintray-test-1.0.pom;publish=1"
+
+        // Create the package:
+        bintray.subject(connectionProperties.username).repository(REPO_NAME).createPkg(pkgBuilder)
+
+        //Put a binary in teh version
         restClient.putBinary(path, headers, new ByteArrayInputStream('bla'.bytes))
 
         when:
@@ -609,6 +614,7 @@ class BintrayClientSpec extends Specification {
                 "\t\t\"desc\": \"\",\n" +
                 "\t\t\"website_url\": \"\",\n" +
                 "\t\t\"labels\": [],\n" +
+                "\t\t\"vcs_url\": \"https://github.com/bintray/bintray-client-java.git\",\n" +
                 "\t\t\"licenses\": [\"MIT\"]\n" +
                 "}"
 
