@@ -271,12 +271,11 @@ public class BintrayImpl implements Bintray {
     private String createUrl(String uri) throws BintrayCallException {
         try {
             log.debug("Trying to encode uri: {}", uri);
-            URLEncoder.encode(uri, "UTF-8");
+            return baseUrl + "/" + URLEncoder.encode(uri, "UTF-8");
         } catch (UnsupportedEncodingException e) {
             throw new BintrayCallException(HttpStatus.SC_BAD_REQUEST, "Malformed url, request will not be executed: ",
                     e.getMessage());
         }
-        return baseUrl + "/" + uri;
     }
 
     private void setHeaders(HttpUriRequest request, Map<String, String> headers) {
