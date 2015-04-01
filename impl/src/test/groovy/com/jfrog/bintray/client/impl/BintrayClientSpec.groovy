@@ -153,7 +153,7 @@ class BintrayClientSpec extends Specification {
 
     def 'Test correct URL encoding'() {
         setup:
-        def path1 = "content/" + connectionProperties.username + "/" + REPO_NAME + "/" + PKG_NAME + "/" + VERSION + "/com/jfrog/bintray/bintray-test/1.0/bintray-test-1.0.pom;publish=1"
+        def path1 = "content/user/" + REPO_NAME + "/" + PKG_NAME + "/" + VERSION + "/com/jfrog/bintray/bintray-test/1.0/bintray-test-1.0.pom;publish=1"
         def path2 = "docker/bla/dockertest/v1/repositories/library/ubuntu"
         def path3 = "docker/bla/dockertest/v1/images/511136ea3c5a64f264b78b5433614aec563103b4d4702f3ba7d4d2698e22c158/json with space.ext"
         def path4 = "bla/someUser/test?a=b&c=d"
