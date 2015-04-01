@@ -3,6 +3,7 @@ package com.jfrog.bintray.client.impl.handle;
 import com.jfrog.bintray.client.api.BintrayCallException;
 import com.jfrog.bintray.client.api.MultipleBintrayCallException;
 import com.jfrog.bintray.client.api.handle.*;
+import com.jfrog.bintray.client.impl.util.URIUtil;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.*;
 import org.apache.http.client.ResponseHandler;
@@ -20,8 +21,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.util.*;
 import java.util.concurrent.Callable;
@@ -111,7 +110,6 @@ public class BintrayImpl implements Bintray {
     public HttpResponse sign(String uri, Map<String, String> headers, int fileCount) throws BintrayCallException {
         HttpPost signRequest = new HttpPost(createUrl(uri));
         setHeaders(signRequest, headers);
-        //Set signRequestTimeoutPerFile * fileCount timeout on request
         signRequest.setConfig(RequestConfig.custom().setSocketTimeout(signRequestTimeoutPerFile * fileCount)
                 .setConnectionRequestTimeout(signRequestTimeoutPerFile * fileCount)
                 .setConnectTimeout(signRequestTimeoutPerFile * fileCount).build());
@@ -218,15 +216,15 @@ public class BintrayImpl implements Bintray {
         List<RequestRunner> runners = new ArrayList<>();
         List<HttpPut> requests = new ArrayList<>();
         log.debug("Creating PUT requests and RequestRunners for execution");
-        for (String uri : uriAndStreamMap.keySet()) {
+        for (String apiPath : uriAndStreamMap.keySet()) {
             HttpPut putRequest;
             try {
-                putRequest = new HttpPut(createUrl(uri));
+                putRequest = new HttpPut(createUrl(apiPath));
             } catch (BintrayCallException bce) {
                 errors.add(bce);
                 continue;
             }
-            HttpEntity requestEntity = new InputStreamEntity(uriAndStreamMap.get(uri));
+            HttpEntity requestEntity = new InputStreamEntity(uriAndStreamMap.get(apiPath));
             putRequest.setEntity(requestEntity);
             setHeaders(putRequest, headers);
             requests.add(putRequest);
@@ -268,12 +266,12 @@ public class BintrayImpl implements Bintray {
         }
     }
 
-    private String createUrl(String uri) throws BintrayCallException {
+    private String createUrl(String queryPath) throws BintrayCallException {
+        log.debug("Trying to encode uri: '{}' with base url: {}", queryPath, baseUrl);
         try {
-            log.debug("Trying to encode uri: {}", uri);
-            return baseUrl + "/" + URLEncoder.encode(uri, "UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            throw new BintrayCallException(HttpStatus.SC_BAD_REQUEST, "Malformed url, request will not be executed: ",
+            return URIUtil.encodeQuery(baseUrl + "/" + queryPath);
+        } catch (HttpException e) {
+            throw new BintrayCallException(HttpStatus.SC_BAD_REQUEST, "Malformed url, request will not be sent: ",
                     e.getMessage());
         }
     }

@@ -151,6 +151,33 @@ class BintrayClientSpec extends Specification {
         return new BintrayImpl(conf.hostFromUrl(url).noRetry().authentication(creds).getClient(), url, 5, 90000)
     }
 
+    def 'Test correct URL encoding'() {
+        setup:
+        def path1 = "content/" + connectionProperties.username + "/" + REPO_NAME + "/" + PKG_NAME + "/" + VERSION + "/com/jfrog/bintray/bintray-test/1.0/bintray-test-1.0.pom;publish=1"
+        def path2 = "docker/bla/dockertest/v1/repositories/library/ubuntu"
+        def path3 = "docker/bla/dockertest/v1/images/511136ea3c5a64f264b78b5433614aec563103b4d4702f3ba7d4d2698e22c158/json with space.ext"
+        def path4 = "bla/someUser/test?a=b&c=d"
+        def path5 = "bla/someUser/testMatrix;a+=b"
+        def path6 = "t%st/spe^al/ch&ar\$/*()!#/ok?"
+
+        when:
+        def encodedPath1 = ((BintrayImpl) bintray).createUrl(path1)
+        def encodedPath2 = ((BintrayImpl) bintray).createUrl(path2)
+        def encodedPath3 = ((BintrayImpl) bintray).createUrl(path3)
+        def encodedPath4 = ((BintrayImpl) bintray).createUrl(path4)
+        def encodedPath5 = ((BintrayImpl) bintray).createUrl(path5)
+        def encodedPath6 = ((BintrayImpl) bintray).createUrl(path6)
+
+        then:
+        encodedPath1.toString().equals("https://api.bintray.com/content/user/generic/bla/1.0/com/jfrog/bintray/bintray-test/1.0/bintray-test-1.0.pom;publish=1")
+        encodedPath2.toString().equals("https://api.bintray.com/docker/bla/dockertest/v1/repositories/library/ubuntu")
+        encodedPath3.toString().equals("https://api.bintray.com/docker/bla/dockertest/v1/images/511136ea3c5a64f264b78b5433614aec563103b4d4702f3ba7d4d2698e22c158/json%20with%20space.ext")
+        encodedPath4.toString().equals("https://api.bintray.com/bla/someUser/test?a=b&c=d")
+        encodedPath5.toString().equals("https://api.bintray.com/bla/someUser/testMatrix;a+=b")
+        encodedPath6.toString().equals("https://api.bintray.com/t%25st/spe%5Eal/ch&ar\$/*()!%23/ok?")
+
+    }
+
     def 'Connection is successful and subject has correct username and avatar'() {
         //noinspection JavaStylePropertiesInvocation,GroovySetterCallCanBePropertyAccess
         setup:
