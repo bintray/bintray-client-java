@@ -85,6 +85,8 @@ subprojects() {
             events "started", "passed", "skipped", "failed", "standardOut", "standardError"
             minGranularity 0
         }
+        //Have the BintraySpecSuite run all tests
+        exclude 'com/jfrog/bintray/client/test/spec'
 
         finalizedBy(testResultsZip)
     }
