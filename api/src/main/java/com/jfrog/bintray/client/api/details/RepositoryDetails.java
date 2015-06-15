@@ -1,5 +1,6 @@
 package com.jfrog.bintray.client.api.details;
 
+import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 import org.codehaus.jackson.annotate.JsonProperty;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -17,29 +18,65 @@ import java.util.List;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class RepositoryDetails {
 
-    @JsonProperty(value = "name")
+    //Properties marked with @JsonPropery here are serialized to the create \ update version requests, the rest are
+    // only deserialized when getting the version info
+    @JsonIgnore
     String name;
-    @JsonProperty(value = "owner")
+    @JsonIgnore
     String owner;
+    @JsonProperty
+    String type;
+    @JsonProperty(value = "private")
+    Boolean isPrivate;
+    @JsonProperty
+    Boolean premium;
     @JsonProperty(value = "desc")
     String description;
-    @JsonProperty(value = "created")
-    DateTime created;
-    @JsonProperty(value = "labels")
+    @JsonProperty
     List<String> labels;
-    @JsonProperty(value = "package_count")
+    @JsonIgnore
+    DateTime created;
+    @JsonIgnore
     Integer packageCount;
+    @JsonIgnore
+    Boolean updateExisting; //Property is not used in the Bintray API but Artifactory uses is in it's Bintray integration
 
     public static ObjectMapper getObjectMapper() {
         return ObjectMapperHelper.objectMapper;
     }
 
+    @JsonIgnore
     public String getName() {
         return name;
     }
 
+    @JsonProperty(value = "name")
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public Boolean getIsPrivate() {
+        return isPrivate;
+    }
+
+    public void setIsPrivate(Boolean isPrivate) {
+        this.isPrivate = isPrivate;
+    }
+
+    public Boolean getPremium() {
+        return premium;
+    }
+
+    public void setPremium(Boolean premium) {
+        this.premium = premium;
+    }
+
+    public void setType(String type) {
+        this.type = type;
     }
 
     public String getOwner() {
@@ -58,10 +95,12 @@ public class RepositoryDetails {
         this.description = description;
     }
 
+    @JsonIgnore
     public DateTime getCreated() {
         return created;
     }
 
+    @JsonProperty(value = "created")
     public void setCreated(DateTime created) {
         this.created = created;
     }
@@ -74,11 +113,23 @@ public class RepositoryDetails {
         this.labels = labels;
     }
 
+    @JsonIgnore
     public Integer getPackageCount() {
         return packageCount;
     }
 
+    @JsonProperty(value = "package_count")
     public void setPackageCount(Integer packageCount) {
         this.packageCount = packageCount;
+    }
+
+    @JsonIgnore
+    public Boolean getUpdateExisting() {
+        return updateExisting;
+    }
+
+    @JsonProperty(value = "updateExisting")
+    public void setUpdateExisting(Boolean updateExisting) {
+        this.updateExisting = updateExisting;
     }
 }

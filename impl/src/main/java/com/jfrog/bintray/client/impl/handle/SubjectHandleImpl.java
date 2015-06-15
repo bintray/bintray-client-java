@@ -2,11 +2,14 @@ package com.jfrog.bintray.client.impl.handle;
 
 import com.jfrog.bintray.client.api.BintrayCallException;
 import com.jfrog.bintray.client.api.details.ObjectMapperHelper;
+import com.jfrog.bintray.client.api.details.RepositoryDetails;
 import com.jfrog.bintray.client.api.details.SubjectDetails;
 import com.jfrog.bintray.client.api.handle.RepositoryHandle;
 import com.jfrog.bintray.client.api.handle.SubjectHandle;
 import com.jfrog.bintray.client.api.model.Subject;
+import com.jfrog.bintray.client.impl.model.RepositoryImpl;
 import com.jfrog.bintray.client.impl.model.SubjectImpl;
+import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpResponse;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.slf4j.Logger;
@@ -14,6 +17,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * @author Dan Feldman
@@ -40,6 +45,15 @@ class SubjectHandleImpl implements SubjectHandle {
     }
 
     @Override
+    public RepositoryHandle createRepo(RepositoryDetails repoDetails) throws IOException, BintrayCallException {
+        Map<String, String> headers = new HashMap<>();
+        String jsonContent = RepositoryImpl.getCreateUpdateJson(repoDetails);
+        BintrayImpl.addContentTypeJsonHeader(headers);
+        bintrayHandle.post(getRepoUri(repoDetails), headers, IOUtils.toInputStream(jsonContent));
+        return new RepositoryHandleImpl(bintrayHandle, this, repoDetails.getName());
+    }
+
+    @Override
     public Subject get() throws IOException, BintrayCallException {
         HttpResponse response = bintrayHandle.get("users/" + subject, null);
         SubjectDetails subjectDetails;
@@ -52,5 +66,9 @@ class SubjectHandleImpl implements SubjectHandle {
             throw e;
         }
         return new SubjectImpl(subjectDetails);
+    }
+
+    private String getRepoUri(RepositoryDetails repoDetails) {
+        return String.format("repos/%s/%s", subject, repoDetails.getName());
     }
 }

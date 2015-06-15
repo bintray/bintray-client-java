@@ -1,12 +1,18 @@
 package com.jfrog.bintray.client.test.spec
 
 import com.jfrog.bintray.client.api.BintrayCallException
+import com.jfrog.bintray.client.api.details.RepositoryDetails
+import com.jfrog.bintray.client.api.handle.RepositoryHandle
 import com.jfrog.bintray.client.api.model.Pkg
 import com.jfrog.bintray.client.api.model.Subject
+import com.jfrog.bintray.client.impl.model.RepositoryImpl
 import com.jfrog.bintray.client.test.BintraySpecSuite
 import com.timgroup.jgravatar.Gravatar
+import groovy.json.JsonSlurper
+import org.apache.commons.io.IOUtils
 import org.apache.http.HttpHeaders
 import org.apache.http.entity.ContentType
+import org.codehaus.jackson.map.ObjectMapper
 import spock.lang.Specification
 
 import static com.jfrog.bintray.client.test.BintraySpecSuite.*
@@ -54,22 +60,6 @@ class RepoSpec extends Specification {
                 new ByteArrayInputStream(attributesQuery.getBytes()))
 
         when:
-        /* the following code is analogous to this rest query payload:
-        [
-        {"att1" : ["val1", "val2"]}, //att1 value is either val1 or val2 (att1 is a scalar)
-        {"att2": "[1,3]"}, //att2 value is equal to or greater than 1 and equal to or smaller than 3
-        {"att3": "[,3]"}, //att3 value is equals to or smaller than 3
-        {"att4": "[,3["}, //att3 value is smaller than 3
-        {"att5": "]2011-07-14T19:43:37+0100,]"}, //att5 value  is after 2011-07-14T19:43:37+0100 (dates are defined in ISO8601 format)
-        ]
-         */
-//        def results = repo.searchForPackage().byAttributeName('att1').in('val1', 'val2').and().
-//                byAttributeName('att2').greaterOrEqualsTo(1).lessOrEquals(3).and().
-//                byAttributeName('att3').lessOrEquals(3).and().
-//                byAttributeName('att4').lessThan(3).and().
-//                byAttributeName('att5').after(new DateTime(2011, 7, 14, 19, 43, 37, DateTimeZone.forOffsetHours(1))).and().
-//                byAttributeName('att6').equals(3).search()
-
         List<Pkg> results = repo.searchForPackage().byAttributeName(ATTRIBUTE_NAME).equalsVal(ATTRIBUTE_VALUE).searchPackage()
 
         then:
@@ -86,6 +76,48 @@ class RepoSpec extends Specification {
         then:
         BintrayCallException e = thrown()
         e.statusCode == SC_NOT_FOUND
+    }
+
+    def 'Repo creation using RepositoryDetails'() {
+        setup:
+        ObjectMapper mapper = new ObjectMapper()
+        RepositoryDetails repositoryDetails = mapper.readValue(repoJson, RepositoryDetails.class)
+
+        when:
+        JsonSlurper slurper = new JsonSlurper()
+        RepositoryHandle repoHandle = bintray.subject(connectionProperties.username).createRepo(repositoryDetails)
+        RepositoryImpl locallyCreated = new RepositoryImpl(repositoryDetails);
+
+        RepositoryImpl repo = repoHandle.get()
+        def directJson = slurper.parseText(IOUtils.toString(restClient.get("/repos/" + connectionProperties.username + "/" + REPO_CREATE_NAME, null).getEntity().getContent()))
+
+        then:
+        //PackageImpl
+        locallyCreated.getType().equals(repo.getType())
+        locallyCreated.getName().equals(repo.getName())
+        locallyCreated.getIsPrivate().equals(repo.getIsPrivate())
+        locallyCreated.getPremium().equals(repo.getPremium())
+        locallyCreated.getDesc().equals(repo.getDesc())
+        locallyCreated.getLabels().sort().equals(repo.getLabels().sort())
+
+        and:
+        //jsons
+        REPO_CREATE_NAME.equals(directJson.name)
+        repositoryDetails.getDescription().equals(directJson.desc)
+        repositoryDetails.getIsPrivate().equals(directJson.private)
+        repositoryDetails.getPremium().equals(directJson.premium)
+        repositoryDetails.getType().equals(directJson.type)
+        for (int i = 0; i < repositoryDetails.getLabels().size(); i++) {
+            repositoryDetails.getLabels().sort().get(i).equalsIgnoreCase(directJson.labels.sort()[i])
+        }
+
+        cleanup:
+        try {
+            String cleanPkg = "/repos/" + connectionProperties.username + "/" + REPO_CREATE_NAME
+            restClient.delete(cleanPkg, null)
+        } catch (Exception e) {
+            System.err.println("cleanup: " + e)
+        }
     }
 
     def cleanup() {

@@ -32,6 +32,7 @@ import static org.apache.http.HttpStatus.SC_NOT_FOUND
 @Suite.SuiteClasses([RepoSpec.class, PackageSpec.class, VersionSpec.class, BintrayClientSpec.class])
 class BintraySpecSuite {
 
+    public static final String REPO_CREATE_NAME = 'repoTest'
     public static final String REPO_NAME = 'generic'
     public static final String PKG_NAME = 'bla'
     public static final String VERSION = '1.0'
@@ -50,11 +51,13 @@ class BintraySpecSuite {
     @Shared
     public static String tempPkgName = "PkgTest"
     @Shared
-    public static String pkgJson;
-    @Shared
     public static String tempVerName = "3.0"
     @Shared
-    public static String verJson;
+    public static String pkgJson
+    @Shared
+    public static String verJson
+    @Shared
+    public static String repoJson
 
     public static ArrayList<Attribute<String>> attributes = [
             new Attribute<String>('a', Attribute.Type.string, "ay1", "ay2"),
@@ -135,6 +138,15 @@ class BintraySpecSuite {
                 "    \"attributes\": [{\"name\": \"VerAtt1\",\"values\": [\"VerVal1\"],\"type\": \"string\"},\n" +
                 "        {\"name\": \"VerAtt2\",\"values\": [1,3.3,5],\"type\": \"number\"},\n" +
                 "        {\"name\": \"VerAtt3\",\"values\": [\"2015-01-01T19:43:37+0100\"],\"type\": \"date\"}]\n" +
+                "}"
+
+        repoJson = "{\n" +
+                "  \"name\": \"" + REPO_CREATE_NAME + "\",\n" +
+                "  \"type\": \"maven\",\n" +
+                "  \"private\": false,\n" +
+                "  \"premium\": false,\n" +
+                "  \"desc\": \"Test Repo\",\n" +
+                "  \"labels\":[\"lable1\", \"label2\"]\n" +
                 "}"
 
         LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
