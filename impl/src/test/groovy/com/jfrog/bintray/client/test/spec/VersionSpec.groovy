@@ -15,6 +15,7 @@ import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
 import spock.lang.Specification
 
+import static com.jfrog.bintray.client.api.BintrayClientConstatnts.API_PKGS
 import static com.jfrog.bintray.client.test.BintraySpecSuite.*
 import static org.apache.http.HttpStatus.SC_NOT_FOUND
 
@@ -79,8 +80,8 @@ class VersionSpec extends Specification {
         ver.setAttributes(attributes)
 
         JsonSlurper slurper = new JsonSlurper()
-        def actualVersion = slurper.parseText(IOUtils.toString(restClient.get("/packages/" + connectionProperties.username + "/" + REPO_NAME + "/" + PKG_NAME + "/versions/" + VERSION, null).getEntity().getContent()))
-        def actualAttributes = slurper.parseText(IOUtils.toString(restClient.get("/packages/" + connectionProperties.username + "/" + REPO_NAME + "/" + PKG_NAME + "/versions/" + VERSION + "/attributes", null).getEntity().getContent()))
+        def actualVersion = slurper.parseText(IOUtils.toString(restClient.get("/" + API_PKGS + connectionProperties.username + "/" + REPO_NAME + "/" + PKG_NAME + "/versions/" + VERSION, null).getEntity().getContent()))
+        def actualAttributes = slurper.parseText(IOUtils.toString(restClient.get("/" + API_PKGS + connectionProperties.username + "/" + REPO_NAME + "/" + PKG_NAME + "/versions/" + VERSION + "/attributes", null).getEntity().getContent()))
 
         then:
         ['a', 'b', 'c'] == actualVersion.attribute_names.sort()
@@ -125,8 +126,8 @@ class VersionSpec extends Specification {
         JsonSlurper slurper = new JsonSlurper()
         VersionHandle verHandle = bintray.subject(connectionProperties.username).repository(REPO_NAME).createPkg(pkgDetailsFromJson).createVersion(verDetailsFromJson)
         VersionImpl ver = verHandle.get()
-        def directJson = slurper.parseText(IOUtils.toString(restClient.get("/packages/" + connectionProperties.username + "/" + REPO_NAME + "/" + tempPkgName + "/versions/" + tempVerName, null).getEntity().getContent()))
-        List<Attribute> attributes = Attribute.getAttributeListFromJson(restClient.get("/packages/" + connectionProperties.username + "/" + REPO_NAME + "/" + tempPkgName + "/versions/" + tempVerName + "/attributes", null).getEntity().getContent())
+        def directJson = slurper.parseText(IOUtils.toString(restClient.get("/" + API_PKGS + connectionProperties.username + "/" + REPO_NAME + "/" + tempPkgName + "/versions/" + tempVerName, null).getEntity().getContent()))
+        List<Attribute> attributes = Attribute.getAttributeListFromJson(restClient.get("/" + API_PKGS + connectionProperties.username + "/" + REPO_NAME + "/" + tempPkgName + "/versions/" + tempVerName + "/attributes", null).getEntity().getContent())
 
         then:
         //PackageImpl
@@ -156,7 +157,7 @@ class VersionSpec extends Specification {
 
         cleanup:
         try {
-            String cleanPkg = "/packages/" + connectionProperties.username + "/" + REPO_NAME + "/" + tempPkgName
+            String cleanPkg = "/" + API_PKGS + connectionProperties.username + "/" + REPO_NAME + "/" + tempPkgName
             restClient.delete(cleanPkg, null)
         } catch (Exception e) {
             System.err.println("cleanup: " + e)

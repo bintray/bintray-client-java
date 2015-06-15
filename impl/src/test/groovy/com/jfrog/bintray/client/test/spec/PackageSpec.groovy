@@ -15,6 +15,8 @@ import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
 import spock.lang.Specification
 
+import static com.jfrog.bintray.client.api.BintrayClientConstatnts.API_CONTENT
+import static com.jfrog.bintray.client.api.BintrayClientConstatnts.API_PKGS
 import static com.jfrog.bintray.client.test.BintraySpecSuite.*
 import static org.apache.http.HttpStatus.SC_NOT_FOUND
 
@@ -30,7 +32,7 @@ class PackageSpec extends Specification {
         Map<String, String> headers = new HashMap<>();
         String auth = (connectionProperties.username + ":" + connectionProperties.apiKey)
         headers.put(HttpHeaders.AUTHORIZATION, "Basic " + auth.bytes.encodeBase64())
-        String path = "/content/" + connectionProperties.username + "/" + REPO_NAME + "/" + PKG_NAME + "/" + VERSION + "/com/jfrog/bintray/bintray-test/1.0/bintray-test-1.0.pom;publish=1"
+        String path = "/" + API_CONTENT + connectionProperties.username + "/" + REPO_NAME + "/" + PKG_NAME + "/" + VERSION + "/com/jfrog/bintray/bintray-test/1.0/bintray-test-1.0.pom;publish=1"
         restClient.putBinary(path, headers, new ByteArrayInputStream('bla'.bytes))
 
         when:
@@ -82,8 +84,8 @@ class PackageSpec extends Specification {
         pkg.setAttributes(attributes)
 
         JsonSlurper slurper = new JsonSlurper()
-        def actualPackage = slurper.parseText(IOUtils.toString(restClient.get("/packages/" + connectionProperties.username + "/" + REPO_NAME + "/" + PKG_NAME, null).getEntity().getContent()))
-        def actualAttributes = slurper.parseText(IOUtils.toString(restClient.get("/packages/" + connectionProperties.username + "/" + REPO_NAME + "/" + PKG_NAME + "/attributes", null).getEntity().getContent()))
+        def actualPackage = slurper.parseText(IOUtils.toString(restClient.get("/" + API_PKGS + connectionProperties.username + "/" + REPO_NAME + "/" + PKG_NAME, null).getEntity().getContent()))
+        def actualAttributes = slurper.parseText(IOUtils.toString(restClient.get("/" + API_PKGS + connectionProperties.username + "/" + REPO_NAME + "/" + PKG_NAME + "/attributes", null).getEntity().getContent()))
 
         then:
         ['a', 'b', 'c'] == actualPackage.attribute_names.sort()
@@ -120,8 +122,8 @@ class PackageSpec extends Specification {
         JsonSlurper slurper = new JsonSlurper()
         PackageHandle pkgHandle = bintray.subject(connectionProperties.username).repository(REPO_NAME).createPkg(pkgDetailsFromJson)
         PackageImpl pkg = pkgHandle.get()
-        def directJson = slurper.parseText(IOUtils.toString(restClient.get("/packages/" + connectionProperties.username + "/" + REPO_NAME + "/" + tempPkgName, null).getEntity().getContent()))
-        List<Attribute> attributes = Attribute.getAttributeListFromJson(restClient.get("/packages/" + connectionProperties.username + "/" + REPO_NAME + "/" + tempPkgName + "/attributes", null).getEntity().getContent())
+        def directJson = slurper.parseText(IOUtils.toString(restClient.get("/" + API_PKGS + connectionProperties.username + "/" + REPO_NAME + "/" + tempPkgName, null).getEntity().getContent()))
+        List<Attribute> attributes = Attribute.getAttributeListFromJson(restClient.get("/" + API_PKGS + connectionProperties.username + "/" + REPO_NAME + "/" + tempPkgName + "/attributes", null).getEntity().getContent())
 
         then:
         //PackageImpl
@@ -147,7 +149,7 @@ class PackageSpec extends Specification {
 
         cleanup:
         try {
-            String cleanPkg = "/packages/" + connectionProperties.username + "/" + REPO_NAME + "/" + tempPkgName
+            String cleanPkg = "/" + API_PKGS + connectionProperties.username + "/" + REPO_NAME + "/" + tempPkgName
             restClient.delete(cleanPkg, null)
         } catch (Exception e) {
             System.err.println("cleanup: " + e)

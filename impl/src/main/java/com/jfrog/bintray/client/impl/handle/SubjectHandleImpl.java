@@ -1,7 +1,7 @@
 package com.jfrog.bintray.client.impl.handle;
 
 import com.jfrog.bintray.client.api.BintrayCallException;
-import com.jfrog.bintray.client.api.details.ObjectMapperHelper;
+import com.jfrog.bintray.client.api.ObjectMapperHelper;
 import com.jfrog.bintray.client.api.details.RepositoryDetails;
 import com.jfrog.bintray.client.api.details.SubjectDetails;
 import com.jfrog.bintray.client.api.handle.RepositoryHandle;
@@ -19,6 +19,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
+
+import static com.jfrog.bintray.client.api.BintrayClientConstatnts.API_REPOS;
+import static com.jfrog.bintray.client.api.BintrayClientConstatnts.API_USERS;
 
 /**
  * @author Dan Feldman
@@ -47,7 +50,7 @@ class SubjectHandleImpl implements SubjectHandle {
     @Override
     public RepositoryHandle createRepo(RepositoryDetails repoDetails) throws IOException, BintrayCallException {
         Map<String, String> headers = new HashMap<>();
-        String jsonContent = RepositoryImpl.getCreateUpdateJson(repoDetails);
+        String jsonContent = RepositoryImpl.getCreateJson(repoDetails);
         BintrayImpl.addContentTypeJsonHeader(headers);
         bintrayHandle.post(getRepoUri(repoDetails), headers, IOUtils.toInputStream(jsonContent));
         return new RepositoryHandleImpl(bintrayHandle, this, repoDetails.getName());
@@ -55,10 +58,10 @@ class SubjectHandleImpl implements SubjectHandle {
 
     @Override
     public Subject get() throws IOException, BintrayCallException {
-        HttpResponse response = bintrayHandle.get("users/" + subject, null);
+        HttpResponse response = bintrayHandle.get(API_USERS + subject, null);
         SubjectDetails subjectDetails;
         InputStream jsonContentStream = response.getEntity().getContent();
-        ObjectMapper mapper = ObjectMapperHelper.objectMapper;
+        ObjectMapper mapper = ObjectMapperHelper.get();
         try {
             subjectDetails = mapper.readValue(jsonContentStream, SubjectDetails.class);
         } catch (IOException e) {
@@ -69,6 +72,6 @@ class SubjectHandleImpl implements SubjectHandle {
     }
 
     private String getRepoUri(RepositoryDetails repoDetails) {
-        return String.format("repos/%s/%s", subject, repoDetails.getName());
+        return String.format(API_REPOS + "%s/%s", subject, repoDetails.getName());
     }
 }

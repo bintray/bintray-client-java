@@ -1,8 +1,8 @@
 package com.jfrog.bintray.client.impl.handle;
 
 import com.jfrog.bintray.client.api.BintrayCallException;
+import com.jfrog.bintray.client.api.ObjectMapperHelper;
 import com.jfrog.bintray.client.api.details.Attribute;
-import com.jfrog.bintray.client.api.details.ObjectMapperHelper;
 import com.jfrog.bintray.client.api.details.PackageDetails;
 import com.jfrog.bintray.client.api.details.VersionDetails;
 import com.jfrog.bintray.client.api.handle.PackageHandle;
@@ -27,6 +27,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static com.jfrog.bintray.client.api.BintrayClientConstatnts.API_PKGS;
 
 /**
  * @author Dan Feldman
@@ -60,7 +62,7 @@ class PackageHandleImpl implements PackageHandle {
         HttpResponse response = bintrayHandle.get(getCurrentPackageUri(), null);
         PackageDetails pkgDetails;
         String jsonContentStream = IOUtils.toString(response.getEntity().getContent());
-        ObjectMapper mapper = ObjectMapperHelper.objectMapper;
+        ObjectMapper mapper = ObjectMapperHelper.get();
         try {
             pkgDetails = mapper.readValue(jsonContentStream, PackageDetails.class);
         } catch (IOException e) {
@@ -157,7 +159,7 @@ class PackageHandleImpl implements PackageHandle {
      * @throws BintrayCallException
      */
     public List<Version> attributeSearch() throws BintrayCallException {
-        ObjectMapper mapper = ObjectMapperHelper.objectMapper;
+        ObjectMapper mapper = ObjectMapperHelper.get();
         StringWriter writer = new StringWriter();
         try {
             mapper.writeValue(writer, searchQuery);
@@ -191,7 +193,7 @@ class PackageHandleImpl implements PackageHandle {
 
     @Override
     public String getCurrentPackageUri() {
-        return String.format("packages/%s/%s/%s", repositoryHandle.owner().name(), repositoryHandle.name(), name);
+        return String.format(API_PKGS + "%s/%s/%s", repositoryHandle.owner().name(), repositoryHandle.name(), name);
     }
 
     @Override

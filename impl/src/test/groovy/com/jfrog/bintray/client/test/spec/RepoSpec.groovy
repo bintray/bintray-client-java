@@ -15,6 +15,8 @@ import org.apache.http.entity.ContentType
 import org.codehaus.jackson.map.ObjectMapper
 import spock.lang.Specification
 
+import static com.jfrog.bintray.client.api.BintrayClientConstatnts.API_PKGS
+import static com.jfrog.bintray.client.api.BintrayClientConstatnts.API_REPOS
 import static com.jfrog.bintray.client.test.BintraySpecSuite.*
 import static org.apache.http.HttpStatus.SC_NOT_FOUND
 
@@ -56,7 +58,7 @@ class RepoSpec extends Specification {
         String attributesQuery = "[{\"name\": \"" + ATTRIBUTE_NAME + "\", \"values\" : [\"" + ATTRIBUTE_VALUE + "\"], \"type\": \"string\"}]"
         def headers = new HashMap<String, String>();
         headers.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
-        restClient.post("/packages/" + connectionProperties.username + "/" + REPO_NAME + "/" + PKG_NAME + "/" + "attributes", headers,
+        restClient.post("/" + API_PKGS + connectionProperties.username + "/" + REPO_NAME + "/" + PKG_NAME + "/" + "attributes", headers,
                 new ByteArrayInputStream(attributesQuery.getBytes()))
 
         when:
@@ -89,7 +91,7 @@ class RepoSpec extends Specification {
         RepositoryImpl locallyCreated = new RepositoryImpl(repositoryDetails);
 
         RepositoryImpl repo = repoHandle.get()
-        def directJson = slurper.parseText(IOUtils.toString(restClient.get("/repos/" + connectionProperties.username + "/" + REPO_CREATE_NAME, null).getEntity().getContent()))
+        def directJson = slurper.parseText(IOUtils.toString(restClient.get("/" + API_REPOS + connectionProperties.username + "/" + REPO_CREATE_NAME, null).getEntity().getContent()))
 
         then:
         //PackageImpl
@@ -113,14 +115,53 @@ class RepoSpec extends Specification {
 
         cleanup:
         try {
-            String cleanPkg = "/repos/" + connectionProperties.username + "/" + REPO_CREATE_NAME
+            String cleanPkg = "/" + API_REPOS + connectionProperties.username + "/" + REPO_CREATE_NAME
             restClient.delete(cleanPkg, null)
         } catch (Exception e) {
             System.err.println("cleanup: " + e)
         }
     }
 
+    def 'Repo update using RepositoryDetails'() {
+        setup:
+        ObjectMapper mapper = new ObjectMapper()
+        RepositoryDetails repositoryDetails = mapper.readValue(repoJson, RepositoryDetails.class)
+        RepositoryHandle repoHandle = bintray.subject(connectionProperties.username).createRepo(repositoryDetails)
+
+        def newLabels = ['newLabel1', 'newLabel2']
+        def newDescription = 'A new description for the updated repo'
+        repositoryDetails.setLabels(newLabels)
+        repositoryDetails.setDescription(newDescription)
+        //We don't expect these to change
+        repositoryDetails.setIsPrivate(true)
+        repositoryDetails.setPremium(true)
+        String updateDetailsJson = RepositoryImpl.getUpdateJson(repositoryDetails)
+        RepositoryDetails updateDetails = mapper.readValue(updateDetailsJson, RepositoryDetails.class)
+
+        when:
+        repoHandle.update(updateDetails)
+        JsonSlurper slurper = new JsonSlurper()
+        def directJson = slurper.parseText(IOUtils.toString(restClient.get("/" + API_REPOS + connectionProperties.username + "/" + REPO_CREATE_NAME, null).getEntity().getContent()))
+
+        then:
+        //PackageImpl
+        'maven'.equals(directJson.type)
+        updateDetails.getName().equals(directJson.name)
+        false.equals(directJson.private)
+        false.equals(directJson.premium)
+        updateDetails.getDescription().equals(directJson.desc)
+        updateDetails.getLabels().sort().equals(directJson.labels.sort())
+    }
+
     def cleanup() {
+        try {
+            String repo = "/" + API_REPOS + connectionProperties.username + "/" + REPO_CREATE_NAME
+            restClient.delete(repo, null)
+        } catch (BintrayCallException e) {
+            if (e.getStatusCode() != SC_NOT_FOUND) { //don't care
+                throw e
+            }
+        }
         BintraySpecSuite.cleanup()
     }
 }

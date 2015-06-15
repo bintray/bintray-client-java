@@ -2,8 +2,8 @@ package com.jfrog.bintray.client.impl.handle;
 
 import com.jfrog.bintray.client.api.BintrayCallException;
 import com.jfrog.bintray.client.api.MultipleBintrayCallException;
+import com.jfrog.bintray.client.api.ObjectMapperHelper;
 import com.jfrog.bintray.client.api.details.Attribute;
-import com.jfrog.bintray.client.api.details.ObjectMapperHelper;
 import com.jfrog.bintray.client.api.details.VersionDetails;
 import com.jfrog.bintray.client.api.handle.PackageHandle;
 import com.jfrog.bintray.client.api.handle.VersionHandle;
@@ -22,12 +22,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static com.jfrog.bintray.client.api.BintrayClientConstatnts.*;
+
 /**
  * @author Dan Feldman
  */
 class VersionHandleImpl implements VersionHandle {
     private static final Logger log = LoggerFactory.getLogger(VersionHandleImpl.class);
-    private static final String GPG_SIGN_HEADER = "X-GPG-PASSPHRASE";
     private BintrayImpl bintrayHandle;
     private String name;
     private PackageHandle packageHandle;
@@ -53,7 +54,7 @@ class VersionHandleImpl implements VersionHandle {
     public Version get() throws BintrayCallException, IOException {
         HttpResponse response = bintrayHandle.get(getVersionUri(), null);
         VersionDetails versionDetails;
-        ObjectMapper mapper = ObjectMapperHelper.objectMapper;
+        ObjectMapper mapper = ObjectMapperHelper.get();
         try {
             InputStream jsonContentStream = response.getEntity().getContent();
             versionDetails = mapper.readValue(jsonContentStream, VersionDetails.class);
@@ -107,7 +108,7 @@ class VersionHandleImpl implements VersionHandle {
         Map<String, String> headers = new HashMap<>();
         String jsonContent = Attribute.getJsonFromAttributeList(attributes);
         BintrayImpl.addContentTypeJsonHeader(headers);
-        bintrayHandle.post(getVersionUri() + "/attributes", headers, IOUtils.toInputStream(jsonContent));
+        bintrayHandle.post(getVersionUri() + API_ATTR, headers, IOUtils.toInputStream(jsonContent));
         return this;
     }
 
@@ -124,7 +125,7 @@ class VersionHandleImpl implements VersionHandle {
         Map<String, String> headers = new HashMap<>();
         String jsonContent = Attribute.getJsonFromAttributeList(attributes);
         BintrayImpl.addContentTypeJsonHeader(headers);
-        bintrayHandle.patch(getVersionUri() + "/attributes", headers, IOUtils.toInputStream(jsonContent));
+        bintrayHandle.patch(getVersionUri() + API_ATTR, headers, IOUtils.toInputStream(jsonContent));
         return this;
     }
 
@@ -148,7 +149,7 @@ class VersionHandleImpl implements VersionHandle {
 
     @Override
     public VersionHandle publish() throws BintrayCallException {
-        bintrayHandle.post(getCurrentVersionContentUri() + "/publish", null);
+        bintrayHandle.post(getCurrentVersionContentUri() + API_PUBLISH, null);
         return this;
     }
 
@@ -157,7 +158,7 @@ class VersionHandleImpl implements VersionHandle {
         Map<String, String> headers = new HashMap<>();
         BintrayImpl.addContentTypeJsonHeader(headers);
         String discard = "{\n\"discard\":true\n}";
-        bintrayHandle.post(getCurrentVersionContentUri() + "/publish", headers, IOUtils.toInputStream(discard));
+        bintrayHandle.post(getCurrentVersionContentUri() + API_PUBLISH, headers, IOUtils.toInputStream(discard));
         return this;
     }
 
@@ -182,21 +183,21 @@ class VersionHandleImpl implements VersionHandle {
      */
     @Override
     public String getVersionUri() {
-        return "packages" + getCurrentVersionFullyQualifiedUri();
+        return API_PKGS + getCurrentVersionFullyQualifiedUri();
     }
 
     /**
      * @return gpg/$owner/$repo/$package/versions/$version/
      */
     public String getCurrentVersionGpgUri() {
-        return "gpg" + getCurrentVersionFullyQualifiedUri();
+        return API_GPG + getCurrentVersionFullyQualifiedUri();
     }
 
     /**
      * @return content/$owner/$repo/$package/$version/
      */
     public String getCurrentVersionContentUri() {
-        return String.format("content/%s/%s/%s/%s/", packageHandle.repository().owner().name(),
+        return String.format(API_CONTENT + "%s/%s/%s/%s/", packageHandle.repository().owner().name(),
                 packageHandle.repository().name(), packageHandle.name(), name);
     }
 
@@ -204,7 +205,7 @@ class VersionHandleImpl implements VersionHandle {
      * @return $owner/$repo/$package/versions/$version/
      */
     private String getCurrentVersionFullyQualifiedUri() {
-        return String.format("/%s/%s/%s/versions/%s/", packageHandle.repository().owner().name(),
+        return String.format("%s/%s/%s/" + API_VER + "%s/", packageHandle.repository().owner().name(),
                 packageHandle.repository().name(), packageHandle.name(), name);
     }
 

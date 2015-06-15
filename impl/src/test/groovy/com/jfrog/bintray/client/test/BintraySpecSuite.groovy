@@ -23,6 +23,7 @@ import org.junit.runners.Suite
 import org.slf4j.LoggerFactory
 import spock.lang.Shared
 
+import static com.jfrog.bintray.client.api.BintrayClientConstatnts.API_PKGS
 import static org.apache.http.HttpStatus.SC_NOT_FOUND
 
 /**
@@ -168,7 +169,7 @@ class BintraySpecSuite {
     @AfterClass
     public static void cleanup() {
         try {
-            String pkg = "/packages/" + connectionProperties.username + "/" + REPO_NAME + "/" + PKG_NAME
+            String pkg = "/" + API_PKGS + connectionProperties.username + "/" + REPO_NAME + "/" + PKG_NAME
             restClient.delete(pkg, null)
         } catch (BintrayCallException e) {
             if (e.getStatusCode() != SC_NOT_FOUND) { //don't care

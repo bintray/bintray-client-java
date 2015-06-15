@@ -1,7 +1,7 @@
 package com.jfrog.bintray.client.impl.handle;
 
 import com.jfrog.bintray.client.api.BintrayCallException;
-import com.jfrog.bintray.client.api.details.ObjectMapperHelper;
+import com.jfrog.bintray.client.api.ObjectMapperHelper;
 import com.jfrog.bintray.client.api.details.PackageDetails;
 import com.jfrog.bintray.client.api.details.RepositoryDetails;
 import com.jfrog.bintray.client.api.handle.AttributesSearchQuery;
@@ -28,6 +28,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static com.jfrog.bintray.client.api.BintrayClientConstatnts.API_PKGS;
+import static com.jfrog.bintray.client.api.BintrayClientConstatnts.API_REPOS;
 
 /**
  * @author Dan Feldman
@@ -56,7 +59,7 @@ class RepositoryHandleImpl implements RepositoryHandle {
         HttpResponse response = bintrayHandle.get(getRepositoryUri(), null);
         RepositoryDetails repoDetails;
         InputStream jsonContentStream = response.getEntity().getContent();
-        ObjectMapper mapper = ObjectMapperHelper.objectMapper;
+        ObjectMapper mapper = ObjectMapperHelper.get();
         try {
             repoDetails = mapper.readValue(jsonContentStream, RepositoryDetails.class);
         } catch (IOException e) {
@@ -67,6 +70,15 @@ class RepositoryHandleImpl implements RepositoryHandle {
     }
 
     @Override
+    public RepositoryHandle update(RepositoryDetails repositoryDetails) throws IOException, BintrayCallException {
+        Map<String, String> headers = new HashMap<>();
+        String jsonContent = RepositoryImpl.getUpdateJson(repositoryDetails);
+        BintrayImpl.addContentTypeJsonHeader(headers);
+        bintrayHandle.patch(getRepositoryUri(), headers, IOUtils.toInputStream(jsonContent));
+        return this;
+    }
+
+    @Override
     public PackageHandle pkg(String packageName) {
         return new PackageHandleImpl(bintrayHandle, this, packageName);
     }
@@ -74,7 +86,7 @@ class RepositoryHandleImpl implements RepositoryHandle {
     @Override
     public PackageHandle createPkg(PackageDetails packageDetails) throws IOException, BintrayCallException {
         String jsonContent = PackageImpl.getCreateUpdateJson(packageDetails);
-        bintrayHandle.post(String.format("packages/%s/%s", owner.name(), name), null, IOUtils.toInputStream(jsonContent));
+        bintrayHandle.post(String.format(API_PKGS + "%s/%s", owner.name(), name), null, IOUtils.toInputStream(jsonContent));
         return new PackageHandleImpl(bintrayHandle, this, packageDetails.getName()).setAttributes(packageDetails);
     }
 
@@ -103,7 +115,7 @@ class RepositoryHandleImpl implements RepositoryHandle {
 
     @Override
     public String getRepositoryUri() {
-        return String.format("repos/%s/%s", owner.name(), name);
+        return String.format(API_REPOS + "%s/%s", owner.name(), name);
     }
 
     public void addQuery(AttributesSearchQueryImpl query) {
@@ -118,7 +130,7 @@ class RepositoryHandleImpl implements RepositoryHandle {
      * @throws BintrayCallException
      */
     public List<Pkg> attributeSearch() throws IOException, BintrayCallException {
-        ObjectMapper mapper = ObjectMapperHelper.objectMapper;
+        ObjectMapper mapper = ObjectMapperHelper.get();
         StringWriter writer = new StringWriter();
         try {
             mapper.writeValue(writer, searchQuery);

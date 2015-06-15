@@ -1,5 +1,6 @@
 package com.jfrog.bintray.client.api.details;
 
+import com.jfrog.bintray.client.api.ObjectMapperHelper;
 import org.codehaus.jackson.annotate.JsonCreator;
 import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
@@ -82,7 +83,7 @@ public class PackageDetails {
     }
 
     public static ObjectMapper getObjectMapper() {
-        return ObjectMapperHelper.objectMapper;
+        return ObjectMapperHelper.get();
     }
 
     public PackageDetails name(String name) {

@@ -1,5 +1,6 @@
 package com.jfrog.bintray.client.api.details;
 
+import com.jfrog.bintray.client.api.ObjectMapperHelper;
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 import org.codehaus.jackson.annotate.JsonProperty;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -35,7 +36,7 @@ public class SubjectDetails {
     Long quotaUsedBytes;
 
     public static ObjectMapper getObjectMapper() {
-        return ObjectMapperHelper.objectMapper;
+        return ObjectMapperHelper.get();
     }
 
     public String getName() {

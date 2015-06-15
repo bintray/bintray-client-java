@@ -1,4 +1,4 @@
-package com.jfrog.bintray.client.api.details;
+package com.jfrog.bintray.client.api;
 
 import org.codehaus.jackson.JsonFactory;
 import org.codehaus.jackson.map.DeserializationConfig;
@@ -13,7 +13,9 @@ import org.codehaus.jackson.map.annotate.JsonSerialize;
  */
 public class ObjectMapperHelper {
 
-    public static final ObjectMapper objectMapper = buildDetailsMapper();
+    public static ObjectMapper get() {
+        return buildDetailsMapper();
+    }
 
     private static ObjectMapper buildDetailsMapper() {
         ObjectMapper mapper = new ObjectMapper(new JsonFactory());

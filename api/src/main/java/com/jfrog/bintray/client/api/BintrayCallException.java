@@ -1,6 +1,5 @@
 package com.jfrog.bintray.client.api;
 
-import com.jfrog.bintray.client.api.details.ObjectMapperHelper;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
@@ -36,7 +35,7 @@ public class BintrayCallException extends HttpResponseException {
         if (response.getEntity() != null && statusCode != 405 && statusCode != 500) {
             try {
                 entity = IOUtils.toString(response.getEntity().getContent());
-                ObjectMapper mapper = ObjectMapperHelper.objectMapper;
+                ObjectMapper mapper = ObjectMapperHelper.get();
                 JsonNode node = mapper.readTree(entity);
                 message = node.get("message").getTextValue();
             } catch (IOException | NullPointerException e) {

@@ -1,6 +1,6 @@
 package com.jfrog.bintray.client.impl.model;
 
-import com.jfrog.bintray.client.api.details.ObjectMapperHelper;
+import com.jfrog.bintray.client.api.ObjectMapperHelper;
 import com.jfrog.bintray.client.api.details.PackageDetails;
 import com.jfrog.bintray.client.api.model.Pkg;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -71,7 +71,7 @@ public class PackageImpl implements Pkg {
     }
 
     public static String getCreateUpdateJson(PackageDetails packageDetails) throws IOException {
-        ObjectMapper mapper = ObjectMapperHelper.objectMapper;
+        ObjectMapper mapper = ObjectMapperHelper.get();
         String jsonContent;
         try {
             jsonContent = mapper.writeValueAsString(packageDetails);

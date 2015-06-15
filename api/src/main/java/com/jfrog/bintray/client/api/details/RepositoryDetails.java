@@ -1,5 +1,6 @@
 package com.jfrog.bintray.client.api.details;
 
+import com.jfrog.bintray.client.api.ObjectMapperHelper;
 import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 import org.codehaus.jackson.annotate.JsonProperty;
@@ -42,7 +43,7 @@ public class RepositoryDetails {
     Boolean updateExisting; //Property is not used in the Bintray API but Artifactory uses is in it's Bintray integration
 
     public static ObjectMapper getObjectMapper() {
-        return ObjectMapperHelper.objectMapper;
+        return ObjectMapperHelper.get();
     }
 
     @JsonIgnore

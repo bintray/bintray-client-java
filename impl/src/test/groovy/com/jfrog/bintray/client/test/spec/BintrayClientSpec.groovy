@@ -1,8 +1,8 @@
 package com.jfrog.bintray.client.test.spec
 
 import com.jfrog.bintray.client.api.BintrayCallException
+import com.jfrog.bintray.client.api.ObjectMapperHelper
 import com.jfrog.bintray.client.api.details.Attribute
-import com.jfrog.bintray.client.api.details.ObjectMapperHelper
 import com.jfrog.bintray.client.api.details.PackageDetails
 import com.jfrog.bintray.client.api.details.VersionDetails
 import com.jfrog.bintray.client.api.handle.Bintray
@@ -20,6 +20,7 @@ import org.codehaus.jackson.map.ObjectMapper
 import spock.lang.Shared
 import spock.lang.Specification
 
+import static com.jfrog.bintray.client.api.BintrayClientConstatnts.API_PKGS
 import static com.jfrog.bintray.client.test.BintraySpecSuite.*
 import static org.apache.http.HttpStatus.SC_NOT_FOUND
 import static org.apache.http.HttpStatus.SC_OK
@@ -102,7 +103,7 @@ class BintrayClientSpec extends Specification {
 
     def 'unpublished files can\'t be seen by anonymous'() {
         setup:
-        sleep(10000) //wait for previous deletions to propagate
+        sleep(15000) //wait for previous deletions to propagate
         def ver = bintray.subject(connectionProperties.username).repository(REPO_NAME).createPkg(pkgBuilder).createVersion(versionBuilder)
         HttpClientConfigurator conf = new HttpClientConfigurator();
         def anonymousDownloadServerClient = new BintrayImpl(conf.hostFromUrl("https://dl.bintray.com").noRetry().noCookies().getClient(), "https://dl.bintray.com", 5, 90000)
@@ -110,9 +111,9 @@ class BintrayClientSpec extends Specification {
                  'org/foo/bar/bintray-client-java-service.jar': getClass().getResourceAsStream('/testJar2.jar')]
 
         when:
-        sleep(6000)
+        sleep(10000)
         ver.upload(files)
-        sleep(15000)
+        sleep(20000)
         anonymousDownloadServerClient.get("/" + connectionProperties.username + "/" + REPO_NAME + "/" + files.keySet().asList().get(0), null)
 
         then:
@@ -194,7 +195,7 @@ class BintrayClientSpec extends Specification {
                 "}"
 
         setup:
-        ObjectMapper mapper = ObjectMapperHelper.objectMapper
+        ObjectMapper mapper = ObjectMapperHelper.get()
 
         ArrayList<String> licenses = new ArrayList<>();
         licenses.add("Apache-2.0")
@@ -229,7 +230,7 @@ class BintrayClientSpec extends Specification {
 
         cleanup:
         try {
-            String cleanPkg = "/packages/" + connectionProperties.username + "/" + REPO_NAME + "/" + minimalPkgName
+            String cleanPkg = "/" + API_PKGS + connectionProperties.username + "/" + REPO_NAME + "/" + minimalPkgName
             restClient.delete(cleanPkg, null)
         } catch (Exception e) {
             System.err.println("cleanup: " + e)

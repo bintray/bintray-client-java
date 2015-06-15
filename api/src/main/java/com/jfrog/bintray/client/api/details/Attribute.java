@@ -1,6 +1,7 @@
 package com.jfrog.bintray.client.api.details;
 
 
+import com.jfrog.bintray.client.api.ObjectMapperHelper;
 import org.codehaus.jackson.annotate.*;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
@@ -52,7 +53,7 @@ public class Attribute<T> {
     }
 
     public static ObjectMapper getObjectMapper() {
-        return ObjectMapperHelper.objectMapper;
+        return ObjectMapperHelper.get();
     }
 
     /**
@@ -64,7 +65,7 @@ public class Attribute<T> {
      */
     @JsonIgnore
     public static String getJsonFromAttributeList(List<Attribute> attributeDetails) throws IOException {
-        ObjectMapper mapper = ObjectMapperHelper.objectMapper;
+        ObjectMapper mapper = ObjectMapperHelper.get();
         String jsonContent;
         try {
             jsonContent = mapper.writeValueAsString(attributeDetails);
@@ -77,7 +78,7 @@ public class Attribute<T> {
 
     @JsonIgnore
     public static List<Attribute> getAttributeListFromJson(InputStream inputStream) throws IOException {
-        ObjectMapper mapper = ObjectMapperHelper.objectMapper;
+        ObjectMapper mapper = ObjectMapperHelper.get();
         List<Attribute> attributes;
         try {
             attributes = mapper.readValue(inputStream, new TypeReference<List<Attribute>>() {
