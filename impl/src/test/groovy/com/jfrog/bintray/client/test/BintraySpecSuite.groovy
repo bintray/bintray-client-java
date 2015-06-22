@@ -65,8 +65,10 @@ class BintraySpecSuite {
             new Attribute<String>('b', 'b', 'e'),
             new Attribute<String>('c', 'cee')]
 
-    public static String expectedAttributes = '[[values:[ay1, ay2], name:a, type:string], ' +
-            '[values:[cee], name:c, type:string], [values:[e, b], name:b, type:string]]'
+    public
+    static String expectedPkgAttributes = '[[name:c, type:string, values:[cee]], [name:a, type:string, values:[ay1, ay2]], [name:b, type:string, values:[e, b]]]'
+    public
+    static String expectedVerAttributes = '[[name:a, type:string, values:[ay1, ay2]], [name:c, type:string, values:[cee]], [name:b, type:string, values:[e, b]]]'
 
     public
     static String assortedAttributes = "[{\"name\":\"verAttr2\",\"values\":[\"val1\",\"val2\"],\"type\":\"string\"}," +

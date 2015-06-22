@@ -90,7 +90,7 @@ class PackageSpec extends Specification {
         then:
         ['a', 'b', 'c'] == actualPackage.attribute_names.sort()
         and:
-        expectedAttributes.equalsIgnoreCase(actualAttributes.sort().toString())
+        expectedPkgAttributes.equalsIgnoreCase(actualAttributes.toString())
     }
 
     def 'wrong package gives 404'() {

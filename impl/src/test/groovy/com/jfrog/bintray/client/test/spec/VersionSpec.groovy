@@ -86,7 +86,7 @@ class VersionSpec extends Specification {
         then:
         ['a', 'b', 'c'] == actualVersion.attribute_names.sort()
         and:
-        expectedAttributes == actualAttributes.sort().toString()
+        expectedVerAttributes.equalsIgnoreCase(actualAttributes.sort().toString())
 
     }
 
