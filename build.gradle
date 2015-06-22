@@ -54,7 +54,7 @@ subprojects() {
         compile 'joda-time:joda-time:2.2'
         compile 'commons-io:commons-io:2.1'
         compile 'org.codehaus.jackson:jackson-mapper-asl:1.9.5'
-        compile("org.apache.httpcomponents:httpclient:4.3.5") {
+        compile("org.apache.httpcomponents:httpclient:4.4.1") {
             exclude group: 'commons-logging' //DO NOT REMOVE
         }
     }
@@ -154,11 +154,8 @@ project(':bintray-client-java-service') {
     dependencies {
         compile project(':bintray-client-java-api')
         compile 'commons-lang:commons-lang:2.6'
-        testCompile 'org.codehaus.groovy:groovy-all:2.4.1'
         testCompile group: 'com.timgroup', name: 'jgravatar', version: '1.0'
-        testCompile("org.spockframework:spock-core:1.0-groovy-2.4") {
-            exclude module: 'groovy-all'
-        }
+        testCompile("org.spockframework:spock-core:0.7-groovy-2.0")
     }
 }
 
@@ -177,7 +174,7 @@ def addSlf4J(name) {
 }
 
 task wrapper(type: Wrapper) {
-    gradleVersion = '2.1'
+    gradleVersion = '2.4'
 }
 
 idea {
