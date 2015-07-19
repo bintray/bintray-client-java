@@ -130,9 +130,9 @@ class BintrayClientSpec extends Specification {
         def anonymousDownloadServerClient = new BintrayImpl(conf.hostFromUrl("https://dl.bintray.com").noRetry().getClient(), "https://dl.bintray.com", 5, 90000)
 
         when:
-        sleep(2000)
+        sleep(5000)
         ver.publish()
-        sleep(6000)
+        sleep(20000)
         def response = anonymousDownloadServerClient.get("/" + connectionProperties.username + "/" + REPO_NAME + "/" + files.keySet().asList().get(0), null)
 
         then:
