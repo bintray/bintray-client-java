@@ -27,7 +27,7 @@ allprojects {
 
         publish {
             repository {
-                repoKey = 'oss-release-local'   //The Artifactory repository key to publish to
+                repoKey = 'oss-snapshot-local'   //The Artifactory repository key to publish to
                 username = project.hasProperty('bintrayUser') ? project.bintrayUser : getenv()['BINTRAY_USER']
                 password = project.hasProperty('bintrayKey') ? project.bintrayKey : getenv()['BINTRAY_KEY']
             }
