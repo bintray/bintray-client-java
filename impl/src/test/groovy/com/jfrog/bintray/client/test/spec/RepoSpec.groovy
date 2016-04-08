@@ -48,6 +48,10 @@ class RepoSpec extends Specification {
         'rpm'     | _
         'deb'     | _
         'generic' | _
+        'boxes'   | _
+        'registry'| _
+        'nuget'   | _
+        'opkg'    | _
     }
 
     def 'search by attributes'() {
