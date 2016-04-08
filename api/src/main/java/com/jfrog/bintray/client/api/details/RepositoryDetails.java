@@ -65,8 +65,9 @@ public class RepositoryDetails {
     }
 
     @JsonProperty(value = "name")
-    public void setName(String name) {
+    public RepositoryDetails setName(String name) {
         this.name = name;
+        return this;
     }
 
     public String getType() {
@@ -77,36 +78,41 @@ public class RepositoryDetails {
         return isPrivate;
     }
 
-    public void setIsPrivate(Boolean isPrivate) {
+    public RepositoryDetails setIsPrivate(Boolean isPrivate) {
         this.isPrivate = isPrivate;
+        return this;
     }
 
     public Boolean getPremium() {
         return premium;
     }
 
-    public void setPremium(Boolean premium) {
+    public RepositoryDetails setPremium(Boolean premium) {
         this.premium = premium;
+        return this;
     }
 
-    public void setType(String type) {
+    public RepositoryDetails setType(String type) {
         this.type = type;
+        return this;
     }
 
     public String getOwner() {
         return owner;
     }
 
-    public void setOwner(String owner) {
+    public RepositoryDetails setOwner(String owner) {
         this.owner = owner;
+        return this;
     }
 
     public String getDescription() {
         return description;
     }
 
-    public void setDescription(String description) {
+    public RepositoryDetails setDescription(String description) {
         this.description = description;
+        return this;
     }
 
     @JsonIgnore
@@ -115,16 +121,18 @@ public class RepositoryDetails {
     }
 
     @JsonProperty(value = "created")
-    public void setCreated(DateTime created) {
+    public RepositoryDetails setCreated(DateTime created) {
         this.created = created;
+        return this;
     }
 
     public List<String> getLabels() {
         return labels;
     }
 
-    public void setLabels(List<String> labels) {
+    public RepositoryDetails setLabels(List<String> labels) {
         this.labels = labels;
+        return this;
     }
 
     @JsonIgnore
