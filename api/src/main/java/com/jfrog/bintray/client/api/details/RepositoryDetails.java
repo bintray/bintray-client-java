@@ -35,6 +35,8 @@ public class RepositoryDetails {
     String description;
     @JsonProperty
     List<String> labels;
+    @JsonProperty
+    Integer yum_metadata_depth;
     @JsonIgnore
     DateTime created;
     @JsonIgnore
@@ -94,6 +96,15 @@ public class RepositoryDetails {
 
     public RepositoryDetails setType(String type) {
         this.type = type;
+        return this;
+    }
+
+    public Integer getYumMetadataDepth() {
+        return yum_metadata_depth;
+    }
+
+    public RepositoryDetails setYumMetadataDepth(Integer yum_metadata_depth) {
+        this.yum_metadata_depth = yum_metadata_depth;
         return this;
     }
 
