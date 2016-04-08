@@ -153,6 +153,20 @@ class RepoSpec extends Specification {
         updateDetails.getLabels().sort().equals(directJson.labels.sort())
     }
 
+    def 'Delete repository'(){
+        setup:
+        ObjectMapper mapper = new ObjectMapper()
+        RepositoryDetails repositoryDetails = mapper.readValue(repoJson, RepositoryDetails.class)
+        RepositoryHandle repoHandle = bintray.subject(connectionProperties.username).createRepo(repositoryDetails)
+
+        when:
+        bintray.subject(connectionProperties.username).repository(repositoryDetails.name).delete()
+
+
+        then:
+        !bintray.subject(connectionProperties.username).repository(repositoryDetails.name).exists()
+    }
+
     def cleanup() {
         try {
             String repo = "/" + API_REPOS + connectionProperties.username + "/" + REPO_CREATE_NAME
