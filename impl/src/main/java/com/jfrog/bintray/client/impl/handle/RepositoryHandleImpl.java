@@ -96,6 +96,12 @@ class RepositoryHandleImpl implements RepositoryHandle {
     }
 
     @Override
+    public RepositoryHandle delete() throws BintrayCallException {
+        bintrayHandle.delete(getRepositoryUri(), null);
+        return this;
+    }
+
+    @Override
     public String name() {
         return name;
     }

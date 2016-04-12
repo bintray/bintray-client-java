@@ -48,6 +48,10 @@ class RepoSpec extends Specification {
         'rpm'     | _
         'deb'     | _
         'generic' | _
+        'boxes'   | _
+        'registry'| _
+        'nuget'   | _
+        'opkg'    | _
     }
 
     def 'search by attributes'() {
@@ -151,6 +155,20 @@ class RepoSpec extends Specification {
         false.equals(directJson.premium)
         updateDetails.getDescription().equals(directJson.desc)
         updateDetails.getLabels().sort().equals(directJson.labels.sort())
+    }
+
+    def 'Delete repository'(){
+        setup:
+        ObjectMapper mapper = new ObjectMapper()
+        RepositoryDetails repositoryDetails = mapper.readValue(repoJson, RepositoryDetails.class)
+        RepositoryHandle repoHandle = bintray.subject(connectionProperties.username).createRepo(repositoryDetails)
+
+        when:
+        bintray.subject(connectionProperties.username).repository(repositoryDetails.name).delete()
+
+
+        then:
+        !bintray.subject(connectionProperties.username).repository(repositoryDetails.name).exists()
     }
 
     def cleanup() {

@@ -26,6 +26,8 @@ public interface RepositoryHandle extends Handle<Repository> {
 
     AttributesSearchQuery searchForPackage();
 
+    RepositoryHandle delete() throws BintrayCallException;
+
     boolean exists() throws BintrayCallException;
 
     String getRepositoryUri();
