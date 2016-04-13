@@ -54,18 +54,20 @@ class BintrayClientSpec extends Specification {
         def encodedPath6 = ((BintrayImpl) bintray).createUrl(path6)
 
         then:
-        encodedPath1.toString().equals("https://api.bintray.com/content/user/generic/bla/1.0/com/jfrog/bintray/bintray-test/1.0/bintray-test-1.0.pom;publish=1")
-        encodedPath2.toString().equals("https://api.bintray.com/docker/bla/dockertest/v1/repositories/library/ubuntu")
-        encodedPath3.toString().equals("https://api.bintray.com/docker/bla/dockertest/v1/images/511136ea3c5a64f264b78b5433614aec563103b4d4702f3ba7d4d2698e22c158/json%20with%20space.ext")
-        encodedPath4.toString().equals("https://api.bintray.com/bla/someUser/test?a=b&c=d")
-        encodedPath5.toString().equals("https://api.bintray.com/bla/someUser/testMatrix;a+=b")
-        encodedPath6.toString().equals("https://api.bintray.com/t%25st/spe%5Eal/ch&ar\$/*()!%23/ok?")
-
+        String url = getApiUrl()
+        encodedPath1.toString().equals(url + "/content/user/generic/bla/1.0/com/jfrog/bintray/bintray-test/1.0/bintray-test-1.0.pom;publish=1")
+        encodedPath2.toString().equals(url + "/docker/bla/dockertest/v1/repositories/library/ubuntu")
+        encodedPath3.toString().equals(url + "/docker/bla/dockertest/v1/images/511136ea3c5a64f264b78b5433614aec563103b4d4702f3ba7d4d2698e22c158/json%20with%20space.ext")
+        encodedPath4.toString().equals(url + "/bla/someUser/test?a=b&c=d")
+        encodedPath5.toString().equals(url + "/bla/someUser/testMatrix;a+=b")
+        encodedPath6.toString().equals(url + "/t%25st/spe%5Eal/ch&ar\$/*()!%23/ok?")
     }
 
     def 'on error response is returned without parsing'() {
         setup:
-        Bintray wrongBintray = BintrayClient.create(connectionProperties.username as String, connectionProperties.apiKey as String)
+        Bintray wrongBintray = BintrayClient.create(getApiUrl(),
+            connectionProperties.username as String,
+            connectionProperties.apiKey as String)
         when:
         wrongBintray.subject('bla').get()
         then:
@@ -85,7 +87,8 @@ class BintrayClientSpec extends Specification {
     def 'files uploaded and can be accessed by the author'() {
         setup:
         def ver = bintray.subject(connectionProperties.username).repository(REPO_NAME).createPkg(pkgBuilder).createVersion(versionBuilder)
-        def downloadServerClient = createClient("https://dl.bintray.com")
+        String url = getDownloadUrl()
+        def downloadServerClient = createClient(url)
         files = ['com/bla/bintray-client-java-api.jar'        : getClass().getResourceAsStream('/testJar1.jar'),
                  'org/foo/bar/bintray-client-java-service.jar': getClass().getResourceAsStream('/testJar2.jar')]
 
@@ -106,7 +109,8 @@ class BintrayClientSpec extends Specification {
         sleep(15000) //wait for previous deletions to propagate
         def ver = bintray.subject(connectionProperties.username).repository(REPO_NAME).createPkg(pkgBuilder).createVersion(versionBuilder)
         HttpClientConfigurator conf = new HttpClientConfigurator();
-        def anonymousDownloadServerClient = new BintrayImpl(conf.hostFromUrl("https://dl.bintray.com").noRetry().noCookies().getClient(), "https://dl.bintray.com", 5, 90000)
+        String url = getDownloadUrl()
+        def anonymousDownloadServerClient = new BintrayImpl(conf.hostFromUrl(url).noRetry().noCookies().getClient(), url, 5, 90000)
         files = ['com/bla/bintray-client-java-api.jar'        : getClass().getResourceAsStream('/testJar1.jar'),
                  'org/foo/bar/bintray-client-java-service.jar': getClass().getResourceAsStream('/testJar2.jar')]
 
@@ -127,7 +131,9 @@ class BintrayClientSpec extends Specification {
                  'org/foo/bar/bintray-client-java-service.jar': getClass().getResourceAsStream('/testJar2.jar')]
         VersionHandle ver = bintray.subject(connectionProperties.username).repository(REPO_NAME).createPkg(pkgBuilder).createVersion(versionBuilder).upload(files)
         HttpClientConfigurator conf = new HttpClientConfigurator();
-        def anonymousDownloadServerClient = new BintrayImpl(conf.hostFromUrl("https://dl.bintray.com").noRetry().getClient(), "https://dl.bintray.com", 5, 90000)
+
+        String url = getDownloadUrl()
+        def anonymousDownloadServerClient = new BintrayImpl(conf.hostFromUrl(url).noRetry().getClient(), url, 5, 90000)
 
         when:
         sleep(5000)
@@ -149,7 +155,9 @@ class BintrayClientSpec extends Specification {
         sleep(4000)
         ver.discard()
         sleep(4000) //wait for propagation to dl and stuff
-        "https://dl.bintray.com/$connectionProperties.username/$REPO_NAME/${files.keySet().asList().get(0)}".toURL().content
+
+        String url = getDownloadUrl()
+        "$url/$connectionProperties.username/$REPO_NAME/${files.keySet().asList().get(0)}".toURL().content
 
         then:
         IOException ioe = thrown()

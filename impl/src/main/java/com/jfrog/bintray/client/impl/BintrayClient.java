@@ -30,9 +30,7 @@ public class BintrayClient {
      * Username and API key, no proxy
      */
     static public Bintray create(String userName, String apiKey) {
-        UsernamePasswordCredentials creds = new UsernamePasswordCredentials(userName, apiKey);
-        return new BintrayImpl(createClient(creds, null, BINTRAY_API_URL), BINTRAY_API_URL, DEFAULT_THREAD_POOL_SIZE,
-                DEFAULT_SIGN_REQUEST_TIMEOUT_PER_FILE);
+        return create(BINTRAY_API_URL, userName, apiKey);
     }
 
     /**

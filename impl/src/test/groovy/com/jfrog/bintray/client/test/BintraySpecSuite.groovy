@@ -102,7 +102,9 @@ class BintraySpecSuite {
         assert connectionProperties.apiKey
         assert connectionProperties.email
 
-        bintray = BintrayClient.create(connectionProperties.username as String, connectionProperties.apiKey as String)
+        bintray = BintrayClient.create(getApiUrl(),
+            connectionProperties.username as String,
+            connectionProperties.apiKey as String)
 
         restClient = createClient()
 
@@ -161,12 +163,25 @@ class BintraySpecSuite {
         httpLogger.setLevel(Level.INFO);
     }
 
-    public static BintrayImpl createClient(String url = "https://api.bintray.com") {
+    public static BintrayImpl createClient() {
+        return createClient(null)
+    }
+
+    public static BintrayImpl createClient(String url) {
+        url = (url ?: getApiUrl())
         UsernamePasswordCredentials creds = new UsernamePasswordCredentials(connectionProperties.username as String,
                 connectionProperties.apiKey as String)
 
         HttpClientConfigurator conf = new HttpClientConfigurator()
         return new BintrayImpl(conf.hostFromUrl(url).noRetry().authentication(creds).getClient(), url, 5, 90000)
+    }
+
+    public static String getApiUrl() {
+        return connectionProperties.bintrayUrl ?: BintrayClient.BINTRAY_API_URL
+    }
+
+    public static String getDownloadUrl() {
+        return connectionProperties.bintrayDownloadUrl ?: 'https://dl.bintray.com'
     }
 
     @AfterClass
