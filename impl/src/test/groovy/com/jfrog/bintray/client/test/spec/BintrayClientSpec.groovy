@@ -145,6 +145,26 @@ class BintrayClientSpec extends Specification {
         response.getStatusLine().getStatusCode() == SC_OK
     }
 
+    def 'sync-publish artifacts'() {
+        setup:
+        files = ['com/bla/bintray-client-java-api.jar'        : getClass().getResourceAsStream('/testJar1.jar'),
+                 'org/foo/bar/bintray-client-java-service.jar': getClass().getResourceAsStream('/testJar2.jar')]
+        VersionHandle ver = bintray.subject(connectionProperties.username).repository(REPO_NAME).createPkg(pkgBuilder).createVersion(versionBuilder).upload(files)
+        HttpClientConfigurator conf = new HttpClientConfigurator();
+
+        String url = getDownloadUrl()
+        def anonymousDownloadServerClient = new BintrayImpl(conf.hostFromUrl(url).noRetry().getClient(), url, 5, 90000)
+
+        when:
+        sleep(5000)
+        ver.publishSync()
+        sleep(20000)
+        def response = anonymousDownloadServerClient.get("/" + connectionProperties.username + "/" + REPO_NAME + "/" + files.keySet().asList().get(0), null)
+
+        then:
+        response.getStatusLine().getStatusCode() == SC_OK
+    }
+
     def 'discard artifacts'() {
         setup:
         files = ['com/bla/bintray-client-java-api.jar'        : getClass().getResourceAsStream('/testJar1.jar'),
