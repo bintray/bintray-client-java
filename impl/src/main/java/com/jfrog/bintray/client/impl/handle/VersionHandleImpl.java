@@ -153,6 +153,17 @@ class VersionHandleImpl implements VersionHandle {
         return this;
     }
 
+
+    @Override
+    public VersionHandle publishSync() throws BintrayCallException {
+        Map<String, String> headers = new HashMap<>();
+        BintrayImpl.addContentTypeJsonHeader(headers);
+        int timeout = -1;
+        String wait = "{\n\"publish_wait_for_secs\":" + timeout + "\n}";
+        bintrayHandle.post(getCurrentVersionContentUri() + API_PUBLISH, null, IOUtils.toInputStream(wait));
+        return this;
+    }
+
     @Override
     public VersionHandle discard() throws BintrayCallException {
         Map<String, String> headers = new HashMap<>();

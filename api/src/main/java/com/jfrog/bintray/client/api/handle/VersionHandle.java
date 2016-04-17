@@ -40,6 +40,8 @@ public interface VersionHandle extends Handle<Version> {
 
     VersionHandle publish() throws BintrayCallException;
 
+    VersionHandle publishSync() throws BintrayCallException
+
     VersionHandle discard() throws BintrayCallException;
 
     VersionHandle sign(String passphrase, int fileCount) throws BintrayCallException;
