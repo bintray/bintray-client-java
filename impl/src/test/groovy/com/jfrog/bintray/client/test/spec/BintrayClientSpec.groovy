@@ -35,6 +35,10 @@ class BintrayClientSpec extends Specification {
     private static Map files = ['com/bla/bintray-client-java-api.jar'        : getClass().getResourceAsStream('/testJar1.jar'),
                                 'org/foo/bar/bintray-client-java-service.jar': getClass().getResourceAsStream('/testJar2.jar')]
 
+    def void setup() {
+        createRepoIfNeeded(REPO_NAME, genericRepoJson)
+    }
+
     def 'Test correct URL encoding'() {
         setup:
         def path1 = "content/user/" + REPO_NAME + "/" + PKG_NAME + "/" + VERSION + "/com/jfrog/bintray/bintray-test/1.0/bintray-test-1.0.pom;publish=1"
@@ -86,8 +90,7 @@ class BintrayClientSpec extends Specification {
     def 'files uploaded and can be accessed by the author'() {
         setup:
         def ver = bintray.subject(connectionProperties.username).repository(REPO_NAME).createPkg(pkgBuilder).createVersion(versionBuilder)
-        String url = getDownloadUrl()
-        def downloadServerClient = createClient(url)
+        def downloadServerClient = createClient(getDownloadUrl())
         files = ['com/bla/bintray-client-java-api.jar'        : getClass().getResourceAsStream('/testJar1.jar'),
                  'org/foo/bar/bintray-client-java-service.jar': getClass().getResourceAsStream('/testJar2.jar')]
 
@@ -266,5 +269,9 @@ class BintrayClientSpec extends Specification {
         } catch (Exception e) {
             System.err.println("cleanup: " + e)
         }
+    }
+
+    def cleanup() {
+        deleteRepo(REPO_NAME)
     }
 }

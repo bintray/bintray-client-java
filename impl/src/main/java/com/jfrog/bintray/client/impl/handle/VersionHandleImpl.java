@@ -10,6 +10,7 @@ import com.jfrog.bintray.client.api.handle.VersionHandle;
 import com.jfrog.bintray.client.api.model.Version;
 import com.jfrog.bintray.client.impl.model.VersionImpl;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpResponse;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.slf4j.Logger;
@@ -133,7 +134,7 @@ class VersionHandleImpl implements VersionHandle {
     public VersionHandle upload(Map<String, InputStream> content) throws MultipleBintrayCallException {
         Map<String, InputStream> uriConvertedContent = new HashMap<>();
         for (String path : content.keySet()) {
-            uriConvertedContent.put(getCurrentVersionContentUri() + path, content.get(path));
+            uriConvertedContent.put(getUploadUriWithPath(path), content.get(path));
         }
 
         bintrayHandle.putBinary(uriConvertedContent, null);
@@ -142,7 +143,27 @@ class VersionHandleImpl implements VersionHandle {
 
     @Override
     public VersionHandle upload(String path, InputStream content) throws BintrayCallException {
-        bintrayHandle.putBinary(getCurrentVersionContentUri() + path, null, content);
+        bintrayHandle.putBinary(getUploadUriWithPath(path), null, content);
+        return this;
+    }
+
+    public VersionHandle uploadVagrant(String path, String boxProvider,
+            InputStream content) throws BintrayCallException {
+        bintrayHandle.putBinary(getVagrantUploadUri(path, boxProvider), null, content);
+        return this;
+    }
+
+    public VersionHandle uploadDebian(String path, String distribution, String component, String architecture,
+            InputStream content) throws BintrayCallException {
+        bintrayHandle.putBinary(getUploadUriWithPath(path),
+                getDebianCoordinatesHeaders(distribution, component, architecture), content);
+        return this;
+    }
+
+    public VersionHandle uploadDebian(String path, List<String> distributions, List<String> components,
+            List<String> architectures, InputStream content) throws BintrayCallException {
+        bintrayHandle.putBinary(getUploadUriWithPath(path),
+                getDebianCoordinatesHeaders(distributions, components, architectures), content);
         return this;
     }
 
@@ -216,6 +237,29 @@ class VersionHandleImpl implements VersionHandle {
     private String getCurrentVersionFullyQualifiedUri() {
         return String.format("%s/%s/%s/" + API_VER + "%s/", packageHandle.repository().owner().name(),
                 packageHandle.repository().name(), packageHandle.name(), name);
+    }
+
+    private String getVagrantUploadUri(String path, String boxProvider) {
+        return getUploadUriWithPath(path) + "?box_provider=" + boxProvider;
+    }
+
+    private String getUploadUriWithPath(String path) {
+        return getCurrentVersionContentUri() + path;
+    }
+
+    private Map<String, String> getDebianCoordinatesHeaders(List<String> distributions, List<String> components,
+            List<String> architectures) {
+        return getDebianCoordinatesHeaders(StringUtils.join(distributions, ","), StringUtils.join(components, ","),
+                StringUtils.join(architectures, ","));
+    }
+
+    private Map<String, String> getDebianCoordinatesHeaders(String distribution, String component,
+            String architecture) {
+        Map<String, String> coordinatesHeaders = new HashMap<>();
+        coordinatesHeaders.put("X-Bintray-Debian-Distribution", distribution);
+        coordinatesHeaders.put("X-Bintray-Debian-Component", component);
+        coordinatesHeaders.put("X-Bintray-Debian-Architecture", architecture);
+        return coordinatesHeaders;
     }
 
     private VersionHandle upload(List<File> content, boolean recursive) {

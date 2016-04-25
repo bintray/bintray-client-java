@@ -38,6 +38,14 @@ public interface VersionHandle extends Handle<Version> {
 
     VersionHandle upload(String path, InputStream content) throws BintrayCallException;
 
+    VersionHandle uploadVagrant(String path, String boxProvider, InputStream content) throws BintrayCallException;
+
+    VersionHandle uploadDebian(String path, String distribution, String component, String architecture,
+            InputStream content) throws BintrayCallException;
+
+    VersionHandle uploadDebian(String path, List<String> distributions, List<String> components,
+            List<String> architectures, InputStream content) throws BintrayCallException;
+
     VersionHandle publish() throws BintrayCallException;
 
     VersionHandle publishSync() throws BintrayCallException;

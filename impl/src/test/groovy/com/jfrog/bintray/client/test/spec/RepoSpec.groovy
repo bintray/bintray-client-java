@@ -4,9 +4,7 @@ import com.jfrog.bintray.client.api.BintrayCallException
 import com.jfrog.bintray.client.api.details.RepositoryDetails
 import com.jfrog.bintray.client.api.handle.RepositoryHandle
 import com.jfrog.bintray.client.api.model.Pkg
-import com.jfrog.bintray.client.api.model.Subject
 import com.jfrog.bintray.client.impl.model.RepositoryImpl
-import com.timgroup.jgravatar.Gravatar
 import groovy.json.JsonSlurper
 import org.apache.commons.io.IOUtils
 import org.apache.http.HttpHeaders
@@ -24,17 +22,8 @@ import static org.apache.http.HttpStatus.SC_NOT_FOUND
  */
 class RepoSpec extends Specification {
 
-    def 'Connection is successful and subject has correct username and avatar'() {
-        //noinspection JavaStylePropertiesInvocation,GroovySetterCallCanBePropertyAccess
-        setup:
-        Gravatar gravatar = new Gravatar().setSize(140)
-
-        when:
-        Subject clientTests = bintray.subject(connectionProperties.username).get()
-
-        then:
-        clientTests.name == connectionProperties.username
-        new URL(clientTests.gravatarId).bytes == gravatar.download(connectionProperties.email as String)
+    def void setup() {
+        createRepoIfNeeded(REPO_NAME, genericRepoJson)
     }
 
     def 'Default Repos exist'(String repoName, def _) {
@@ -156,7 +145,7 @@ class RepoSpec extends Specification {
         updateDetails.getLabels().sort().equals(directJson.labels.sort())
     }
 
-    def 'Delete repository'(){
+    def 'Delete repository'() {
         setup:
         ObjectMapper mapper = new ObjectMapper()
         RepositoryDetails repositoryDetails = mapper.readValue(repoJson, RepositoryDetails.class)
@@ -170,10 +159,9 @@ class RepoSpec extends Specification {
         !bintray.subject(connectionProperties.username).repository(repositoryDetails.name).exists()
     }
 
-    def cleanup() {
+    def static void tearDown() {
         try {
-            String repo = "/" + API_REPOS + connectionProperties.username + "/" + REPO_CREATE_NAME
-            restClient.delete(repo, null)
+
         } catch (BintrayCallException bce) {
             if (bce.getStatusCode() != 404) {
                 System.err.println("cleanup: " + bce)
@@ -181,5 +169,10 @@ class RepoSpec extends Specification {
         } catch (Exception e) {
             System.err.println("cleanup: " + e)
         }
+    }
+
+    def cleanup() {
+        deleteRepo(REPO_CREATE_NAME)
+        deleteRepo(REPO_NAME)
     }
 }

@@ -3,8 +3,10 @@ package com.jfrog.bintray.client.test
 import ch.qos.logback.classic.Level
 import ch.qos.logback.classic.Logger
 import ch.qos.logback.classic.LoggerContext
+import com.jfrog.bintray.client.api.BintrayCallException
 import com.jfrog.bintray.client.api.details.Attribute
 import com.jfrog.bintray.client.api.details.PackageDetails
+import com.jfrog.bintray.client.api.details.RepositoryDetails
 import com.jfrog.bintray.client.api.details.VersionDetails
 import com.jfrog.bintray.client.api.handle.Bintray
 import com.jfrog.bintray.client.impl.BintrayClient
@@ -12,17 +14,20 @@ import com.jfrog.bintray.client.impl.HttpClientConfigurator
 import com.jfrog.bintray.client.impl.handle.BintrayImpl
 import com.jfrog.bintray.client.test.spec.*
 import org.apache.http.auth.UsernamePasswordCredentials
+import org.codehaus.jackson.map.ObjectMapper
 import org.junit.BeforeClass
 import org.junit.runner.RunWith
 import org.junit.runners.Suite
 import org.slf4j.LoggerFactory
 import spock.lang.Shared
 
+import static com.jfrog.bintray.client.api.BintrayClientConstatnts.API_REPOS
+
 /**
  * @author Dan Feldman
  */
 @RunWith(Suite)
-@Suite.SuiteClasses([RepoSpec.class, PackageSpec.class, VersionSpec.class, BintrayClientSpec.class, ProductSpec.class])
+@Suite.SuiteClasses([RepoSpec.class, PackageSpec.class, VersionSpec.class, BintrayClientSpec.class, ProductSpec.class, SpecialArtifactUploadSpec.class])
 class BintraySpecSuite {
 
     public static final String REPO_CREATE_NAME = 'repoTest'
@@ -52,6 +57,8 @@ class BintraySpecSuite {
     public static String verJson
     @Shared
     public static String repoJson
+    @Shared
+    public static String genericRepoJson
     @Shared
     public static String productJson
 
@@ -88,10 +95,6 @@ class BintraySpecSuite {
         if (apiKeyFromEnv) {
             connectionProperties.apiKey = apiKeyFromEnv
         }
-        def emailFromEnv = System.getenv('BINTRAY_EMAIL')
-        if (emailFromEnv) {
-            connectionProperties.email = emailFromEnv
-        }
         def orgFromEnv = System.getenv('BINTRAY_ORG')
         if (orgFromEnv) {
             connectionProperties.org = orgFromEnv
@@ -99,7 +102,6 @@ class BintraySpecSuite {
         assert connectionProperties
         assert connectionProperties.username
         assert connectionProperties.apiKey
-        assert connectionProperties.email
 
         bintray = BintrayClient.create(getApiUrl(),
             connectionProperties.username as String,
@@ -154,6 +156,15 @@ class BintraySpecSuite {
                 "  \"labels\":[\"lable1\", \"label2\"]\n" +
                 "}"
 
+        genericRepoJson = "{\n" +
+                "  \"name\": \"" + REPO_NAME + "\",\n" +
+                "  \"type\": \"generic\",\n" +
+                "  \"private\": false,\n" +
+                "  \"premium\": false,\n" +
+                "  \"desc\": \"Generic Test Repo\",\n" +
+                "  \"labels\":[\"testLabel1\", \"testLabel2\"]\n" +
+                "}"
+
         productJson = "{\n" +
                 " \"name\": \"" + TEST_PRODUCT_NAME + "\",\n" +
                 " \"desc\": \"product description\",\n" +
@@ -189,5 +200,26 @@ class BintraySpecSuite {
 
     public static String getDownloadUrl() {
         return connectionProperties.bintrayDownloadUrl ?: 'https://dl.bintray.com'
+    }
+
+    public static void createRepoIfNeeded(String repoName, String repoJson) {
+        if (!bintray.subject(connectionProperties.username).repository(repoName).exists()) {
+            ObjectMapper mapper = new ObjectMapper()
+            RepositoryDetails repositoryDetails = mapper.readValue(repoJson, RepositoryDetails.class)
+            bintray.subject(connectionProperties.username).createRepo(repositoryDetails)
+        }
+    }
+
+    public static void deleteRepo(String repoName) {
+        try {
+            String repo = "/" + API_REPOS + connectionProperties.username + "/" + repoName
+            restClient.delete(repo, null)
+        } catch (BintrayCallException bce) {
+            if (bce.getStatusCode() != 404) {
+                System.err.println("cleanup: " + bce)
+            }
+        } catch (Exception e) {
+            System.err.println("cleanup: " + e)
+        }
     }
 }

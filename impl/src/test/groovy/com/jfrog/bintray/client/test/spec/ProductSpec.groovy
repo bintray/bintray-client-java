@@ -14,7 +14,6 @@ import spock.lang.IgnoreIf
 import spock.lang.Specification
 
 import static com.jfrog.bintray.client.api.BintrayClientConstatnts.API_PRODUCTS
-import static com.jfrog.bintray.client.api.BintrayClientConstatnts.API_REPOS
 import static com.jfrog.bintray.client.test.BintraySpecSuite.*
 
 /**
@@ -108,16 +107,8 @@ class ProductSpec extends Specification {
         } catch (Exception e) {
             System.err.println("cleanup: " + e)
         }
-        String delRepo = "/" + API_REPOS + connectionProperties.org + "/" + REPO_CREATE_NAME
-        try {
-            restClient.delete(delRepo, null)
-        } catch (BintrayCallException bce) {
-            if (bce.getStatusCode() != 404) {
-                System.err.println("cleanup: " + bce)
-            }
-        } catch (Exception e) {
-            System.err.println("cleanup: " + e)
-        }
+
+        deleteRepo(REPO_CREATE_NAME)
     }
 
     public static boolean testOrgDefined() {

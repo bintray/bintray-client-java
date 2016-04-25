@@ -24,6 +24,10 @@ import static org.apache.http.HttpStatus.SC_NOT_FOUND
  */
 class PackageSpec extends Specification {
 
+    def void setup() {
+        createRepoIfNeeded(REPO_NAME, genericRepoJson)
+    }
+
     def 'Package created'() {
         setup:
         bintray.subject(connectionProperties.username).repository(REPO_NAME).createPkg(pkgBuilder).createVersion(versionBuilder)
@@ -157,5 +161,9 @@ class PackageSpec extends Specification {
         } catch (Exception e) {
             System.err.println("cleanup: " + e)
         }
+    }
+
+    def cleanup() {
+        deleteRepo(REPO_NAME)
     }
 }
