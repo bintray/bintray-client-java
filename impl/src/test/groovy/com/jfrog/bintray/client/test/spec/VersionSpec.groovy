@@ -7,7 +7,6 @@ import com.jfrog.bintray.client.api.details.VersionDetails
 import com.jfrog.bintray.client.api.handle.VersionHandle
 import com.jfrog.bintray.client.api.model.Version
 import com.jfrog.bintray.client.impl.model.VersionImpl
-import com.jfrog.bintray.client.test.BintraySpecSuite
 import groovy.json.JsonSlurper
 import org.apache.commons.io.IOUtils
 import org.codehaus.jackson.map.ObjectMapper
@@ -159,12 +158,12 @@ class VersionSpec extends Specification {
         try {
             String cleanPkg = "/" + API_PKGS + connectionProperties.username + "/" + REPO_NAME + "/" + tempPkgName
             restClient.delete(cleanPkg, null)
+        } catch (BintrayCallException bce) {
+            if (bce.getStatusCode() != 404) {
+                System.err.println("cleanup: " + bce)
+            }
         } catch (Exception e) {
             System.err.println("cleanup: " + e)
         }
-    }
-
-    def cleanup() {
-        BintraySpecSuite.cleanup()
     }
 }

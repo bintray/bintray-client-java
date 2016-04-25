@@ -2,8 +2,10 @@ package com.jfrog.bintray.client.impl.handle;
 
 import com.jfrog.bintray.client.api.BintrayCallException;
 import com.jfrog.bintray.client.api.ObjectMapperHelper;
+import com.jfrog.bintray.client.api.details.ProductDetails;
 import com.jfrog.bintray.client.api.details.RepositoryDetails;
 import com.jfrog.bintray.client.api.details.SubjectDetails;
+import com.jfrog.bintray.client.api.handle.ProductHandle;
 import com.jfrog.bintray.client.api.handle.RepositoryHandle;
 import com.jfrog.bintray.client.api.handle.SubjectHandle;
 import com.jfrog.bintray.client.api.model.Subject;
@@ -20,8 +22,7 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 
-import static com.jfrog.bintray.client.api.BintrayClientConstatnts.API_REPOS;
-import static com.jfrog.bintray.client.api.BintrayClientConstatnts.API_USERS;
+import static com.jfrog.bintray.client.api.BintrayClientConstatnts.*;
 
 /**
  * @author Dan Feldman
@@ -57,6 +58,20 @@ class SubjectHandleImpl implements SubjectHandle {
     }
 
     @Override
+    public ProductHandle product(String name) {
+        return new ProductHandleImpl(bintrayHandle, this, name);
+    }
+
+    @Override
+    public ProductHandle createProduct(ProductDetails productDetails) throws IOException, BintrayCallException {
+        Map<String, String> headers = new HashMap<>();
+        String jsonContent = ObjectMapperHelper.get().writeValueAsString(productDetails);
+        BintrayImpl.addContentTypeJsonHeader(headers);
+        bintrayHandle.post(getProductUri(), headers, IOUtils.toInputStream(jsonContent));
+        return new ProductHandleImpl(bintrayHandle, this, productDetails.getName());
+    }
+
+    @Override
     public Subject get() throws IOException, BintrayCallException {
         HttpResponse response = bintrayHandle.get(API_USERS + subject, null);
         SubjectDetails subjectDetails;
@@ -73,5 +88,9 @@ class SubjectHandleImpl implements SubjectHandle {
 
     private String getRepoUri(RepositoryDetails repoDetails) {
         return String.format(API_REPOS + "%s/%s", subject, repoDetails.getName());
+    }
+
+    private String getProductUri() {
+        return API_PRODUCTS + "/" + subject;
     }
 }

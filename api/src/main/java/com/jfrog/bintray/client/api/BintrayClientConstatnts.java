@@ -13,6 +13,7 @@ public interface BintrayClientConstatnts {
     String API_VER = "versions/";
     String API_GPG = "gpg/";
     String API_CONTENT = "content/";
+    String API_PRODUCTS = "products/";
 
     String API_PUBLISH = "/publish";
     String API_ATTR = "/attributes";

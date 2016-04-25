@@ -6,7 +6,6 @@ import com.jfrog.bintray.client.api.handle.RepositoryHandle
 import com.jfrog.bintray.client.api.model.Pkg
 import com.jfrog.bintray.client.api.model.Subject
 import com.jfrog.bintray.client.impl.model.RepositoryImpl
-import com.jfrog.bintray.client.test.BintraySpecSuite
 import com.timgroup.jgravatar.Gravatar
 import groovy.json.JsonSlurper
 import org.apache.commons.io.IOUtils
@@ -98,7 +97,7 @@ class RepoSpec extends Specification {
         def directJson = slurper.parseText(IOUtils.toString(restClient.get("/" + API_REPOS + connectionProperties.username + "/" + REPO_CREATE_NAME, null).getEntity().getContent()))
 
         then:
-        //PackageImpl
+        //RepoImpl
         locallyCreated.getType().equals(repo.getType())
         locallyCreated.getName().equals(repo.getName())
         locallyCreated.getIsPrivate().equals(repo.getIsPrivate())
@@ -119,8 +118,8 @@ class RepoSpec extends Specification {
 
         cleanup:
         try {
-            String cleanPkg = "/" + API_REPOS + connectionProperties.username + "/" + REPO_CREATE_NAME
-            restClient.delete(cleanPkg, null)
+            String delRepo = "/" + API_REPOS + connectionProperties.username + "/" + REPO_CREATE_NAME
+            restClient.delete(delRepo, null)
         } catch (Exception e) {
             System.err.println("cleanup: " + e)
         }
@@ -161,7 +160,7 @@ class RepoSpec extends Specification {
         setup:
         ObjectMapper mapper = new ObjectMapper()
         RepositoryDetails repositoryDetails = mapper.readValue(repoJson, RepositoryDetails.class)
-        RepositoryHandle repoHandle = bintray.subject(connectionProperties.username).createRepo(repositoryDetails)
+        bintray.subject(connectionProperties.username).createRepo(repositoryDetails)
 
         when:
         bintray.subject(connectionProperties.username).repository(repositoryDetails.name).delete()
@@ -175,11 +174,12 @@ class RepoSpec extends Specification {
         try {
             String repo = "/" + API_REPOS + connectionProperties.username + "/" + REPO_CREATE_NAME
             restClient.delete(repo, null)
-        } catch (BintrayCallException e) {
-            if (e.getStatusCode() != SC_NOT_FOUND) { //don't care
-                throw e
+        } catch (BintrayCallException bce) {
+            if (bce.getStatusCode() != 404) {
+                System.err.println("cleanup: " + bce)
             }
+        } catch (Exception e) {
+            System.err.println("cleanup: " + e)
         }
-        BintraySpecSuite.cleanup()
     }
 }

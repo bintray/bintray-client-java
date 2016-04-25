@@ -1,6 +1,7 @@
 package com.jfrog.bintray.client.api.handle;
 
 import com.jfrog.bintray.client.api.BintrayCallException;
+import com.jfrog.bintray.client.api.details.ProductDetails;
 import com.jfrog.bintray.client.api.details.RepositoryDetails;
 import com.jfrog.bintray.client.api.model.Subject;
 
@@ -18,4 +19,8 @@ public interface SubjectHandle extends Handle<Subject> {
     RepositoryHandle repository(String name);
 
     RepositoryHandle createRepo(RepositoryDetails repoDetails) throws IOException, BintrayCallException;
+
+    ProductHandle product(String name);
+
+    ProductHandle createProduct(ProductDetails productDetails) throws IOException, BintrayCallException;
 }

@@ -3,7 +3,6 @@ package com.jfrog.bintray.client.test
 import ch.qos.logback.classic.Level
 import ch.qos.logback.classic.Logger
 import ch.qos.logback.classic.LoggerContext
-import com.jfrog.bintray.client.api.BintrayCallException
 import com.jfrog.bintray.client.api.details.Attribute
 import com.jfrog.bintray.client.api.details.PackageDetails
 import com.jfrog.bintray.client.api.details.VersionDetails
@@ -11,29 +10,23 @@ import com.jfrog.bintray.client.api.handle.Bintray
 import com.jfrog.bintray.client.impl.BintrayClient
 import com.jfrog.bintray.client.impl.HttpClientConfigurator
 import com.jfrog.bintray.client.impl.handle.BintrayImpl
-import com.jfrog.bintray.client.test.spec.BintrayClientSpec
-import com.jfrog.bintray.client.test.spec.PackageSpec
-import com.jfrog.bintray.client.test.spec.RepoSpec
-import com.jfrog.bintray.client.test.spec.VersionSpec
+import com.jfrog.bintray.client.test.spec.*
 import org.apache.http.auth.UsernamePasswordCredentials
-import org.junit.AfterClass
 import org.junit.BeforeClass
 import org.junit.runner.RunWith
 import org.junit.runners.Suite
 import org.slf4j.LoggerFactory
 import spock.lang.Shared
 
-import static com.jfrog.bintray.client.api.BintrayClientConstatnts.API_PKGS
-import static org.apache.http.HttpStatus.SC_NOT_FOUND
-
 /**
  * @author Dan Feldman
  */
 @RunWith(Suite)
-@Suite.SuiteClasses([RepoSpec.class, PackageSpec.class, VersionSpec.class, BintrayClientSpec.class])
+@Suite.SuiteClasses([RepoSpec.class, PackageSpec.class, VersionSpec.class, BintrayClientSpec.class, ProductSpec.class])
 class BintraySpecSuite {
 
     public static final String REPO_CREATE_NAME = 'repoTest'
+    public static final String TEST_PRODUCT_NAME = 'test-product'
     public static final String REPO_NAME = 'generic'
     public static final String PKG_NAME = 'bla'
     public static final String VERSION = '1.0'
@@ -59,6 +52,8 @@ class BintraySpecSuite {
     public static String verJson
     @Shared
     public static String repoJson
+    @Shared
+    public static String productJson
 
     public static ArrayList<Attribute<String>> attributes = [
             new Attribute<String>('a', Attribute.Type.string, "ay1", "ay2"),
@@ -96,6 +91,10 @@ class BintraySpecSuite {
         def emailFromEnv = System.getenv('BINTRAY_EMAIL')
         if (emailFromEnv) {
             connectionProperties.email = emailFromEnv
+        }
+        def orgFromEnv = System.getenv('BINTRAY_ORG')
+        if (orgFromEnv) {
+            connectionProperties.org = orgFromEnv
         }
         assert connectionProperties
         assert connectionProperties.username
@@ -155,6 +154,14 @@ class BintraySpecSuite {
                 "  \"labels\":[\"lable1\", \"label2\"]\n" +
                 "}"
 
+        productJson = "{\n" +
+                " \"name\": \"" + TEST_PRODUCT_NAME + "\",\n" +
+                " \"desc\": \"product description\",\n" +
+                " \"website_url\": \"http://great-prod.io\",\n" +
+                " \"vcs_url\": \"https://github.com/bintray/bintray-client-java\",\n" +
+                " \"sign_url_expiry\": 10\n" +
+                "}"
+
         LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
         //Set level for root logger
         loggerContext.getLogger("ROOT").setLevel(Level.INFO)
@@ -182,17 +189,5 @@ class BintraySpecSuite {
 
     public static String getDownloadUrl() {
         return connectionProperties.bintrayDownloadUrl ?: 'https://dl.bintray.com'
-    }
-
-    @AfterClass
-    public static void cleanup() {
-        try {
-            String pkg = "/" + API_PKGS + connectionProperties.username + "/" + REPO_NAME + "/" + PKG_NAME
-            restClient.delete(pkg, null)
-        } catch (BintrayCallException e) {
-            if (e.getStatusCode() != SC_NOT_FOUND) { //don't care
-                throw e
-            }
-        }
     }
 }

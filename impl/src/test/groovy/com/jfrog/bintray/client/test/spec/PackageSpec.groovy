@@ -6,7 +6,6 @@ import com.jfrog.bintray.client.api.details.PackageDetails
 import com.jfrog.bintray.client.api.handle.PackageHandle
 import com.jfrog.bintray.client.api.model.Pkg
 import com.jfrog.bintray.client.impl.model.PackageImpl
-import com.jfrog.bintray.client.test.BintraySpecSuite
 import groovy.json.JsonSlurper
 import org.apache.commons.io.IOUtils
 import org.apache.http.HttpHeaders
@@ -151,12 +150,12 @@ class PackageSpec extends Specification {
         try {
             String cleanPkg = "/" + API_PKGS + connectionProperties.username + "/" + REPO_NAME + "/" + tempPkgName
             restClient.delete(cleanPkg, null)
+        } catch (BintrayCallException bce) {
+            if (bce.getStatusCode() != 404) {
+                System.err.println("cleanup: " + bce)
+            }
         } catch (Exception e) {
             System.err.println("cleanup: " + e)
         }
-    }
-
-    def cleanup() {
-        BintraySpecSuite.cleanup()
     }
 }

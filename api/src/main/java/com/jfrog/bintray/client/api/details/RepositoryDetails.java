@@ -20,7 +20,7 @@ import java.util.List;
 public class RepositoryDetails {
 
     //Properties marked with @JsonPropery here are serialized to the create \ update version requests, the rest are
-    // only deserialized when getting the version info
+    // only deserialized when getting the repo info
     @JsonIgnore
     String name;
     @JsonIgnore

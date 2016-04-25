@@ -14,7 +14,6 @@ import com.jfrog.bintray.client.impl.HttpClientConfigurator
 import com.jfrog.bintray.client.impl.handle.BintrayImpl
 import com.jfrog.bintray.client.impl.model.PackageImpl
 import com.jfrog.bintray.client.impl.model.VersionImpl
-import com.jfrog.bintray.client.test.BintraySpecSuite
 import org.apache.commons.io.IOUtils
 import org.codehaus.jackson.map.ObjectMapper
 import spock.lang.Shared
@@ -260,12 +259,12 @@ class BintrayClientSpec extends Specification {
         try {
             String cleanPkg = "/" + API_PKGS + connectionProperties.username + "/" + REPO_NAME + "/" + minimalPkgName
             restClient.delete(cleanPkg, null)
+        } catch (BintrayCallException bce) {
+            if (bce.getStatusCode() != 404) {
+                System.err.println("cleanup: " + bce)
+            }
         } catch (Exception e) {
             System.err.println("cleanup: " + e)
         }
-    }
-
-    def cleanup() {
-        BintraySpecSuite.cleanup()
     }
 }
