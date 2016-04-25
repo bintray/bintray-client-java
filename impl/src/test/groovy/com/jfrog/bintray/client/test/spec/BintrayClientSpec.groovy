@@ -140,7 +140,7 @@ class BintrayClientSpec extends Specification {
         when:
         sleep(5000)
         ver.publish()
-        sleep(20000)
+        sleep(30000)
         def response = restClient.get("/" + connectionProperties.username + "/" + REPO_NAME + "/" + files.keySet().asList().get(0), null)
 
         then:
@@ -164,7 +164,7 @@ class BintrayClientSpec extends Specification {
         } catch (BintrayCallException bce) {
             System.err.println("error while waiting for publish: " + bce)
         }
-        sleep(20000)
+        sleep(30000)
         def response = restClient.get("/" + connectionProperties.username + "/" + REPO_NAME + "/" + files.keySet().asList().get(0), null)
 
         then:
