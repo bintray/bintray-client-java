@@ -16,7 +16,7 @@ public class BintrayClient {
 
     public static final int DEFAULT_TIMEOUT = 150000;
     public static final String BINTRAY_API_URL = "https://api.bintray.com";
-    public static final String USER_AGENT = "BintrayJavaClient/0.8.3"; // TODO: make dynamic
+    public static final String USER_AGENT = "BintrayJavaClient/0.8.4"; // TODO: make dynamic
     private static final int DEFAULT_THREAD_POOL_SIZE = 5; //Don't mess with this - its here for a reason
     private static final int DEFAULT_SIGN_REQUEST_TIMEOUT_PER_FILE = 90000; //1.5 min per file
 
