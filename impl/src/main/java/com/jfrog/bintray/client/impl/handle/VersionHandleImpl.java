@@ -16,7 +16,6 @@ import org.codehaus.jackson.map.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
@@ -30,10 +29,15 @@ import static com.jfrog.bintray.client.api.BintrayClientConstatnts.*;
  */
 class VersionHandleImpl implements VersionHandle {
     private static final Logger log = LoggerFactory.getLogger(VersionHandleImpl.class);
+
+    private static final String OVERRIDE_HEADER = "X-Bintray-Override";
+    private static final String DEB_DIST_HEADER = "X-Bintray-Debian-Distribution";
+    private static final String DEB_COMP_HEADER = "X-Bintray-Debian-Component";
+    private static final String DEB_ARCH_HEADER = "X-Bintray-Debian-Architecture";
+
     private BintrayImpl bintrayHandle;
     private String name;
     private PackageHandle packageHandle;
-
 
     public VersionHandleImpl(BintrayImpl bintrayHandle, PackageHandle packageHandle, String versionName) {
         this.bintrayHandle = bintrayHandle;
@@ -132,38 +136,83 @@ class VersionHandleImpl implements VersionHandle {
 
     @Override
     public VersionHandle upload(Map<String, InputStream> content) throws MultipleBintrayCallException {
+        return upload(content, false);
+    }
+
+    @Override
+    public VersionHandle upload(Map<String, InputStream> content, boolean overrideExisting) throws MultipleBintrayCallException {
         Map<String, InputStream> uriConvertedContent = new HashMap<>();
         for (String path : content.keySet()) {
             uriConvertedContent.put(getUploadUriWithPath(path), content.get(path));
         }
-
-        bintrayHandle.putBinary(uriConvertedContent, null);
+        Map<String, String > headers = null;
+        if (overrideExisting) {
+            headers = getOverrideHeader();
+        }
+        bintrayHandle.putBinary(uriConvertedContent, headers);
         return this;
     }
 
     @Override
     public VersionHandle upload(String path, InputStream content) throws BintrayCallException {
-        bintrayHandle.putBinary(getUploadUriWithPath(path), null, content);
+        return upload(path, content, false);
+    }
+
+    @Override
+    public VersionHandle upload(String path, InputStream content, boolean overrideExisting) throws BintrayCallException {
+        Map<String, String > headers = null;
+        if (overrideExisting) {
+            headers = getOverrideHeader();
+        }
+        bintrayHandle.putBinary(getUploadUriWithPath(path), headers, content);
         return this;
     }
 
-    public VersionHandle uploadVagrant(String path, String boxProvider,
-            InputStream content) throws BintrayCallException {
-        bintrayHandle.putBinary(getVagrantUploadUri(path, boxProvider), null, content);
+    @Override
+    public VersionHandle uploadVagrant(String path, String boxProvider, InputStream content) throws BintrayCallException {
+        return uploadVagrant(path, boxProvider, content, false);
+    }
+
+    @Override
+    public VersionHandle uploadVagrant(String path, String boxProvider, InputStream content, boolean overrideExisting) throws BintrayCallException {
+        Map<String, String > headers = null;
+        if (overrideExisting) {
+            headers = getOverrideHeader();
+        }
+        bintrayHandle.putBinary(getVagrantUploadUri(path, boxProvider), headers, content);
         return this;
     }
 
+    @Override
     public VersionHandle uploadDebian(String path, String distribution, String component, String architecture,
             InputStream content) throws BintrayCallException {
-        bintrayHandle.putBinary(getUploadUriWithPath(path),
-                getDebianCoordinatesHeaders(distribution, component, architecture), content);
+        return uploadDebian(path, distribution, component, architecture, content, false);
+    }
+
+    @Override
+    public VersionHandle uploadDebian(String path, String distribution, String component, String architecture,
+            InputStream content, boolean overrideExisting) throws BintrayCallException {
+        Map<String, String > headers = getDebianCoordinatesHeaders(distribution, component, architecture);
+        if (overrideExisting) {
+            headers.putAll(getOverrideHeader());
+        }
+        bintrayHandle.putBinary(getUploadUriWithPath(path), headers, content);
         return this;
     }
 
     public VersionHandle uploadDebian(String path, List<String> distributions, List<String> components,
             List<String> architectures, InputStream content) throws BintrayCallException {
-        bintrayHandle.putBinary(getUploadUriWithPath(path),
-                getDebianCoordinatesHeaders(distributions, components, architectures), content);
+        return uploadDebian(path, distributions, components, architectures, content, false);
+    }
+
+    @Override
+    public VersionHandle uploadDebian(String path, List<String> distributions, List<String> components,
+            List<String> architectures, InputStream content, boolean overrideExisting) throws BintrayCallException {
+        Map<String, String> headers = getDebianCoordinatesHeaders(distributions, components, architectures);
+        if (overrideExisting) {
+            headers.putAll(getOverrideHeader());
+        }
+        bintrayHandle.putBinary(getUploadUriWithPath(path), headers, content);
         return this;
     }
 
@@ -227,7 +276,7 @@ class VersionHandleImpl implements VersionHandle {
      * @return content/$owner/$repo/$package/$version/
      */
     public String getCurrentVersionContentUri() {
-        return String.format(API_CONTENT + "%s/%s/%s/%s/", packageHandle.repository().owner().name(),
+        return String.format(API_CONTENT + "%s/%s/%s/%s", packageHandle.repository().owner().name(),
                 packageHandle.repository().name(), packageHandle.name(), name);
     }
 
@@ -235,7 +284,7 @@ class VersionHandleImpl implements VersionHandle {
      * @return $owner/$repo/$package/versions/$version/
      */
     private String getCurrentVersionFullyQualifiedUri() {
-        return String.format("%s/%s/%s/" + API_VER + "%s/", packageHandle.repository().owner().name(),
+        return String.format("%s/%s/%s/" + API_VER + "%s", packageHandle.repository().owner().name(),
                 packageHandle.repository().name(), packageHandle.name(), name);
     }
 
@@ -244,7 +293,7 @@ class VersionHandleImpl implements VersionHandle {
     }
 
     private String getUploadUriWithPath(String path) {
-        return getCurrentVersionContentUri() + path;
+        return getCurrentVersionContentUri() + "/" + path;
     }
 
     private Map<String, String> getDebianCoordinatesHeaders(List<String> distributions, List<String> components,
@@ -256,19 +305,15 @@ class VersionHandleImpl implements VersionHandle {
     private Map<String, String> getDebianCoordinatesHeaders(String distribution, String component,
             String architecture) {
         Map<String, String> coordinatesHeaders = new HashMap<>();
-        coordinatesHeaders.put("X-Bintray-Debian-Distribution", distribution);
-        coordinatesHeaders.put("X-Bintray-Debian-Component", component);
-        coordinatesHeaders.put("X-Bintray-Debian-Architecture", architecture);
+        coordinatesHeaders.put(DEB_DIST_HEADER, distribution);
+        coordinatesHeaders.put(DEB_COMP_HEADER, component);
+        coordinatesHeaders.put(DEB_ARCH_HEADER, architecture);
         return coordinatesHeaders;
     }
 
-    private VersionHandle upload(List<File> content, boolean recursive) {
-        // TODO: implement upload of files
-        throw new UnsupportedOperationException("Not yet implemented");
-    }
-
-    private VersionHandle upload(File directory, boolean recursive) {
-        // TODO: implement upload of directories
-        throw new UnsupportedOperationException("Not yet implemented");
+    private Map<String, String> getOverrideHeader() {
+        Map<String ,String> headers = new HashMap<>();
+        headers.put(OVERRIDE_HEADER, "1");
+        return headers;
     }
 }

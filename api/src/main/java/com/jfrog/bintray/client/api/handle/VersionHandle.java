@@ -36,15 +36,27 @@ public interface VersionHandle extends Handle<Version> {
 
     VersionHandle upload(Map<String, InputStream> content) throws MultipleBintrayCallException;
 
+    VersionHandle upload(Map<String, InputStream> content, boolean overrideExisting) throws MultipleBintrayCallException;
+
     VersionHandle upload(String path, InputStream content) throws BintrayCallException;
 
+    VersionHandle upload(String path, InputStream content, boolean overrideExisting) throws BintrayCallException;
+
     VersionHandle uploadVagrant(String path, String boxProvider, InputStream content) throws BintrayCallException;
+
+    VersionHandle uploadVagrant(String path, String boxProvider, InputStream content, boolean overrideExisting) throws BintrayCallException;
 
     VersionHandle uploadDebian(String path, String distribution, String component, String architecture,
             InputStream content) throws BintrayCallException;
 
+    VersionHandle uploadDebian(String path, String distribution, String component, String architecture,
+            InputStream content, boolean overrideExisting) throws BintrayCallException;
+
     VersionHandle uploadDebian(String path, List<String> distributions, List<String> components,
             List<String> architectures, InputStream content) throws BintrayCallException;
+
+    VersionHandle uploadDebian(String path, List<String> distributions, List<String> components,
+            List<String> architectures, InputStream content, boolean overrideExisting) throws BintrayCallException;
 
     VersionHandle publish() throws BintrayCallException;
 
