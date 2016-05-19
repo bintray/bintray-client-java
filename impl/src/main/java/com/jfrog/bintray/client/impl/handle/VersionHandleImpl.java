@@ -218,7 +218,17 @@ class VersionHandleImpl implements VersionHandle {
 
     @Override
     public VersionHandle publish() throws BintrayCallException {
-        bintrayHandle.post(getCurrentVersionContentUri() + API_PUBLISH, null);
+        return publish(null);
+    }
+
+    @Override
+    public VersionHandle publish(String gpgPassphrase) throws BintrayCallException {
+        Map<String, String> headers = null;
+        if (StringUtils.isNotBlank(gpgPassphrase)) {
+            headers = new HashMap<>();
+            headers.put(GPG_SIGN_HEADER, gpgPassphrase);
+        }
+        bintrayHandle.post(getCurrentVersionContentUri() + API_PUBLISH, headers);
         return this;
     }
 
