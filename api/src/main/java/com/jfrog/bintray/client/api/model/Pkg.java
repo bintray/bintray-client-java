@@ -41,5 +41,7 @@ public interface Pkg {
 
     List<String> licenses();
 
+    String vcsUrl();
+
     Object getFieldByKey(String key);
 }

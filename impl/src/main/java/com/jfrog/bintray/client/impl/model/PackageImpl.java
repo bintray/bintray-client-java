@@ -34,6 +34,7 @@ public class PackageImpl implements Pkg {
     private List<String> linkedToRepos;
     private List<String> systemIds;
     private List<String> licenses;
+    private String vcsUrl;
     private Map<String, Object> other;
 
     public PackageImpl(PackageDetails packageDetails) {
@@ -52,6 +53,7 @@ public class PackageImpl implements Pkg {
         this.linkedToRepos = packageDetails.getLinkedRepos();
         this.systemIds = packageDetails.getSystemIds();
         this.licenses = packageDetails.getLicenses();
+        this.vcsUrl = packageDetails.getVcsUrl();
         this.other = packageDetails.other();
     }
 
@@ -166,6 +168,11 @@ public class PackageImpl implements Pkg {
     @Override
     public List<String> licenses() {
         return licenses;
+    }
+
+    @Override
+    public String vcsUrl() {
+        return vcsUrl;
     }
 
     @Override
