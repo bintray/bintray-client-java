@@ -10,12 +10,14 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author Noam Y. Tenne
  */
 public class PackageImpl implements Pkg {
     private static final Logger log = LoggerFactory.getLogger(PackageImpl.class);
+
     private String name;
     private String repository;
     private String owner;
@@ -31,6 +33,7 @@ public class PackageImpl implements Pkg {
     private DateTime updated;
     private List<String> linkedToRepos;
     private List<String> systemIds;
+    private Map<String, Object> other;
 
     public PackageImpl(PackageDetails packageDetails) {
         this.name = packageDetails.getName();
@@ -47,6 +50,7 @@ public class PackageImpl implements Pkg {
         this.updated = packageDetails.getUpdated();
         this.linkedToRepos = packageDetails.getLinkedRepos();
         this.systemIds = packageDetails.getSystemIds();
+        this.other = packageDetails.other();
     }
 
     public PackageImpl(String name, String repository, String owner, String description, List<String> labels,
@@ -82,64 +86,84 @@ public class PackageImpl implements Pkg {
         return jsonContent;
     }
 
+    @Override
     public String name() {
         return name;
     }
 
+    @Override
     public String repository() {
         return repository;
     }
 
+    @Override
     public String owner() {
         return owner;
     }
 
+    @Override
     public String description() {
         return description;
     }
 
+    @Override
     public List<String> labels() {
         return labels;
     }
 
+    @Override
     public List<String> attributeNames() {
         return attributeNames;
     }
 
+    @Override
     public Integer rating() {
         return rating;
     }
 
+    @Override
     public Integer ratingCount() {
         return ratingCount;
     }
 
+    @Override
     public Integer followersCount() {
         return followersCount;
     }
 
+    @Override
     public DateTime created() {
         return created;
     }
 
+    @Override
     public List<String> versions() {
         return versions;
     }
 
+    @Override
     public String latestVersion() {
         return latestVersion;
     }
 
+    @Override
     public DateTime updated() {
         return updated;
     }
 
+    @Override
     public List<String> linkedToRepos() {
         return linkedToRepos;
     }
 
+    @Override
     public List<String> systemIds() {
         return systemIds;
+    }
+
+    @Override
+    public Object getFieldByKey(String key) {
+        return other.get(key);
     }
 
     @Override

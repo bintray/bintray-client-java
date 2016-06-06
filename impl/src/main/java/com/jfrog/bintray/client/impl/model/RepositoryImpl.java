@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author Noam Y. Tenne
@@ -28,6 +29,7 @@ public class RepositoryImpl implements Repository {
     private List<String> labels;
     private DateTime created;
     private Integer packageCount;
+    private Map<String ,Object> other;
 
     public RepositoryImpl() {
     }
@@ -42,6 +44,7 @@ public class RepositoryImpl implements Repository {
         this.labels = repositoryDetails.getLabels();
         this.created = repositoryDetails.getCreated();
         this.packageCount = repositoryDetails.getPackageCount();
+        this.other = repositoryDetails.other();
     }
 
     public RepositoryImpl(String name, String owner, String type, Boolean isPrivate, Boolean premium, String desc,
@@ -93,39 +96,53 @@ public class RepositoryImpl implements Repository {
     }
 
 
+    @Override
     public String getName() {
         return name;
     }
 
+    @Override
     public String getOwner() {
         return owner;
     }
 
+    @Override
     public String getType() {
         return type;
     }
 
-    public Boolean getIsPrivate() {
+    @Override
+    public Boolean isPrivate() {
         return isPrivate;
     }
 
-    public Boolean getPremium() {
+    @Override
+    public Boolean isPremium() {
         return premium;
     }
 
+    @Override
     public String getDesc() {
         return desc;
     }
 
+    @Override
     public List<String> getLabels() {
         return labels;
     }
 
+    @Override
     public DateTime getCreated() {
         return created;
     }
 
+    @Override
     public Integer getPackageCount() {
         return packageCount;
+    }
+
+    @Override
+    public Object getFieldByKey(String key) {
+        return other.get(key);
     }
 }

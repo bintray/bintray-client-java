@@ -1,13 +1,13 @@
 package com.jfrog.bintray.client.api.details;
 
 import com.jfrog.bintray.client.api.ObjectMapperHelper;
-import org.codehaus.jackson.annotate.JsonIgnore;
-import org.codehaus.jackson.annotate.JsonIgnoreProperties;
-import org.codehaus.jackson.annotate.JsonProperty;
+import org.codehaus.jackson.annotate.*;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.joda.time.DateTime;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * This class is used to serialize and deserialize the needed json to
@@ -39,6 +39,19 @@ public class ProductDetails {
     List<String> versions;
     @JsonProperty(value = "sign_url_expiry")
     Integer signUrlExpiry;
+
+    //All other props that don't have specific fields
+    private Map<String, Object> other = new HashMap<>();
+
+    @JsonAnySetter
+    public void set(String name, Object value) {
+        other.put(name, value);
+    }
+
+    @JsonAnyGetter
+    public Map<String, Object> other() {
+        return other;
+    }
 
     public String getName() {
         return name;

@@ -5,6 +5,7 @@ import com.jfrog.bintray.client.api.model.Subject;
 import org.joda.time.DateTime;
 
 import java.util.Collection;
+import java.util.Map;
 
 /**
  * @author Noam Y. Tenne
@@ -19,6 +20,7 @@ public class SubjectImpl implements Subject {
     private Integer followersCount;
     private DateTime registered;
     private Long quotaUsedBytes;
+    private Map<String, Object> other;
 
     public SubjectImpl() {
     }
@@ -32,6 +34,7 @@ public class SubjectImpl implements Subject {
         this.followersCount = subjectDetails.getFollowersCount();
         this.registered = subjectDetails.getRegistered();
         this.quotaUsedBytes = subjectDetails.getQuotaUsedBytes();
+        this.other = subjectDetails.other();
     }
 
     public SubjectImpl(String name, String fullName, String gravatarId, Collection<String> repositories,
@@ -46,35 +49,48 @@ public class SubjectImpl implements Subject {
         this.quotaUsedBytes = quotaUsedBytes;
     }
 
+    @Override
     public String getName() {
         return name;
     }
 
+    @Override
     public String getFullName() {
         return fullName;
     }
 
+    @Override
     public String getGravatarId() {
         return gravatarId;
     }
 
+    @Override
     public Collection<String> getRepositories() {
         return repositories;
     }
 
+    @Override
     public Collection<String> getOrganizations() {
         return organizations;
     }
 
+    @Override
     public Integer getFollowersCount() {
         return followersCount;
     }
 
+    @Override
     public DateTime getRegistered() {
         return registered;
     }
 
+    @Override
     public Long getQuotaUsedBytes() {
         return quotaUsedBytes;
+    }
+
+    @Override
+    public Object getFieldByKey(String key) {
+        return other.get(key);
     }
 }

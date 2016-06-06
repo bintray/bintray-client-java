@@ -24,4 +24,6 @@ public interface Product {
     List<String> getPackages();
 
     List<String> getVersions();
+
+    Object getFieldByKey(String key);
 }

@@ -38,4 +38,6 @@ public interface Pkg {
     List<String> linkedToRepos();
 
     List<String> systemIds();
+
+    Object getFieldByKey(String key);
 }

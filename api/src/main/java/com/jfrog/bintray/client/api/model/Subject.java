@@ -24,4 +24,6 @@ public interface Subject {
     DateTime getRegistered();
 
     Long getQuotaUsedBytes();
+
+    Object getFieldByKey(String key);
 }

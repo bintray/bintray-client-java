@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author Noam Y. Tenne
@@ -29,6 +30,7 @@ public class VersionImpl implements Version {
     private DateTime released;
     private Integer ordinal;
     private String vcsTag;
+    private Map<String, Object> other;
 
     public VersionImpl() {
     }
@@ -46,10 +48,11 @@ public class VersionImpl implements Version {
         this.released = versionDetails.getReleased();
         this.ordinal = versionDetails.getOrdinal();
         this.vcsTag = versionDetails.getVcsTag();
+        this.other = versionDetails.other();
     }
 
     public VersionImpl(String name, String description, String pkg, String repository, String owner, List<String> labels,
-                       List<String> attributeNames, DateTime created, DateTime updated, DateTime released, int ordinal, String vcsTag) {
+            List<String> attributeNames, DateTime created, DateTime updated, DateTime released, int ordinal, String vcsTag) {
         this.name = name;
         this.description = description;
         this.pkg = pkg;
@@ -77,46 +80,57 @@ public class VersionImpl implements Version {
         return jsonContent;
     }
 
+    @Override
     public String name() {
         return name;
     }
 
+    @Override
     public String description() {
         return description;
     }
 
+    @Override
     public String pkg() {
         return pkg;
     }
 
+    @Override
     public String repository() {
         return repository;
     }
 
+    @Override
     public String owner() {
         return owner;
     }
 
+    @Override
     public List<String> labels() {
         return labels;
     }
 
+    @Override
     public List<String> attributeNames() {
         return attributeNames;
     }
 
+    @Override
     public DateTime created() {
         return created;
     }
 
+    @Override
     public DateTime updated() {
         return updated;
     }
 
+    @Override
     public DateTime released() {
         return released;
     }
 
+    @Override
     public Integer ordinal() {
         return ordinal;
     }
@@ -124,6 +138,10 @@ public class VersionImpl implements Version {
     @Override
     public String vcsTag() {
         return vcsTag;
+    }
+
+    public Object getFieldByKey(String key) {
+        return other.get(key);
     }
 
     @Override

@@ -5,6 +5,7 @@ import com.jfrog.bintray.client.api.model.Product;
 import org.joda.time.DateTime;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author Dan Feldman
@@ -19,6 +20,7 @@ public class ProductImpl implements Product {
     private String vcsUrl;
     private List<String> packages;
     private List<String> versions;
+    private Map<String, Object> other;
 
     public ProductImpl() {
     }
@@ -32,6 +34,7 @@ public class ProductImpl implements Product {
         this.vcsUrl = productDetails.getVcsUrl();
         this.packages = productDetails.getPackages();
         this.versions = productDetails.getVersions();
+        this.other = productDetails.other();
     }
 
     public ProductImpl(String name, String owner, String description, List<String> packages, List<String> versions,
@@ -82,5 +85,10 @@ public class ProductImpl implements Product {
     @Override
     public List<String> getVersions() {
         return versions;
+    }
+
+    @Override
+    public Object getFieldByKey(String key) {
+        return other.get(key);
     }
 }

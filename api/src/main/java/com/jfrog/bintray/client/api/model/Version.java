@@ -32,4 +32,6 @@ public interface Version {
     Integer ordinal();
 
     String vcsTag();
+
+    Object getFieldByKey(String key);
 }

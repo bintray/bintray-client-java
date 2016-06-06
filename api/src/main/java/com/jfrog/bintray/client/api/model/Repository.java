@@ -13,6 +13,12 @@ public interface Repository {
 
     String getOwner();
 
+    String getType();
+
+    Boolean isPrivate();
+
+    Boolean isPremium();
+
     String getDesc();
 
     List<String> getLabels();
@@ -20,4 +26,6 @@ public interface Repository {
     DateTime getCreated();
 
     Integer getPackageCount();
+
+    Object getFieldByKey(String key);
 }

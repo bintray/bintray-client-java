@@ -1,13 +1,13 @@
 package com.jfrog.bintray.client.api.details;
 
 import com.jfrog.bintray.client.api.ObjectMapperHelper;
-import org.codehaus.jackson.annotate.JsonIgnore;
-import org.codehaus.jackson.annotate.JsonIgnoreProperties;
-import org.codehaus.jackson.annotate.JsonProperty;
+import org.codehaus.jackson.annotate.*;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.joda.time.DateTime;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * This class is used to serialize and deserialize the needed json to
@@ -53,6 +53,19 @@ public class VersionDetails {
     private Boolean useTagReleaseNotes;
     @JsonProperty("vcs_tag")
     private String vcsTag;
+
+    //All other props that don't have specific fields
+    private Map<String, Object> other = new HashMap<>();
+
+    @JsonAnySetter
+    public void set(String name, Object value) {
+        other.put(name, value);
+    }
+
+    @JsonAnyGetter
+    public Map<String, Object> other() {
+        return other;
+    }
 
     public VersionDetails() {
 
