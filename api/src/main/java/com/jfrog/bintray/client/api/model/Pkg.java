@@ -39,5 +39,7 @@ public interface Pkg {
 
     List<String> systemIds();
 
+    List<String> licenses();
+
     Object getFieldByKey(String key);
 }

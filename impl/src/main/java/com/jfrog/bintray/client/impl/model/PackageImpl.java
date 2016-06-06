@@ -33,6 +33,7 @@ public class PackageImpl implements Pkg {
     private DateTime updated;
     private List<String> linkedToRepos;
     private List<String> systemIds;
+    private List<String> licenses;
     private Map<String, Object> other;
 
     public PackageImpl(PackageDetails packageDetails) {
@@ -50,6 +51,7 @@ public class PackageImpl implements Pkg {
         this.updated = packageDetails.getUpdated();
         this.linkedToRepos = packageDetails.getLinkedRepos();
         this.systemIds = packageDetails.getSystemIds();
+        this.licenses = packageDetails.getLicenses();
         this.other = packageDetails.other();
     }
 
@@ -159,6 +161,11 @@ public class PackageImpl implements Pkg {
     @Override
     public List<String> systemIds() {
         return systemIds;
+    }
+
+    @Override
+    public List<String> licenses() {
+        return licenses;
     }
 
     @Override
