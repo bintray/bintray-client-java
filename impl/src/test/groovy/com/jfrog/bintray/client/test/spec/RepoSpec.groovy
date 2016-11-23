@@ -122,11 +122,8 @@ class RepoSpec extends Specification {
 
         def newLabels = ['newLabel1', 'newLabel2']
         def newDescription = 'A new description for the updated repo'
-        repositoryDetails.setLabels(newLabels)
-        repositoryDetails.setDescription(newDescription)
-        //We don't expect these to change
-        repositoryDetails.setIsPrivate(true)
-        repositoryDetails.setPremium(true)
+        //Set repository details, user need to be trial\premium for private and premium feature
+        repositoryDetails.setLabels(newLabels).setDescription(newDescription).setPremium(true).setIsPrivate(true)
         String updateDetailsJson = RepositoryImpl.getUpdateJson(repositoryDetails)
         RepositoryDetails updateDetails = mapper.readValue(updateDetailsJson, RepositoryDetails.class)
 
