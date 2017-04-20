@@ -19,6 +19,7 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
@@ -386,10 +387,10 @@ public class BintrayImpl implements Bintray {
             }
 
             //Response entity might be null, 500 and 405 also give the html itself so skip it
-            String entity = "";
+            InputStream entity = new ByteArrayInputStream("".getBytes(Charset.forName("UTF-8")));
             if (response.getEntity() != null && statusCode != 500 && statusCode != 405) {
                 try {
-                    entity = IOUtils.toString(response.getEntity().getContent());
+                    entity = IOUtils.toBufferedInputStream(response.getEntity().getContent());
                 } catch (IOException | NullPointerException e) {
                     //Null entity - Ignore
                 } finally {
@@ -399,7 +400,7 @@ public class BintrayImpl implements Bintray {
 
             HttpResponse newResponse = DefaultHttpResponseFactory.INSTANCE.newHttpResponse(response.getStatusLine(),
                     new HttpClientContext());
-            newResponse.setEntity(new StringEntity(entity, Charset.forName("UTF-8")));
+            newResponse.setEntity(new InputStreamEntity(entity));
             newResponse.setHeaders(response.getAllHeaders());
             return newResponse;
         }
