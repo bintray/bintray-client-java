@@ -11,6 +11,7 @@ import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.*;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.client.utils.HttpClientUtils;
+import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.InputStreamEntity;
 import org.apache.http.entity.StringEntity;
@@ -19,7 +20,6 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
@@ -387,10 +387,10 @@ public class BintrayImpl implements Bintray {
             }
 
             //Response entity might be null, 500 and 405 also give the html itself so skip it
-            InputStream entity = new ByteArrayInputStream("".getBytes(Charset.forName("UTF-8")));
+            byte[] entity = new byte[0];
             if (response.getEntity() != null && statusCode != 500 && statusCode != 405) {
                 try {
-                    entity = IOUtils.toBufferedInputStream(response.getEntity().getContent());
+                    entity = IOUtils.toByteArray(response.getEntity().getContent());
                 } catch (IOException | NullPointerException e) {
                     //Null entity - Ignore
                 } finally {
@@ -400,7 +400,7 @@ public class BintrayImpl implements Bintray {
 
             HttpResponse newResponse = DefaultHttpResponseFactory.INSTANCE.newHttpResponse(response.getStatusLine(),
                     new HttpClientContext());
-            newResponse.setEntity(new InputStreamEntity(entity));
+            newResponse.setEntity(new ByteArrayEntity(entity));
             newResponse.setHeaders(response.getAllHeaders());
             return newResponse;
         }
