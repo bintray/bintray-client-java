@@ -288,10 +288,13 @@ public class HttpClientConfigurator {
                 HttpHost targetHost = clientContext.getTargetHost();
                 Credentials creds = credsProvider.getCredentials(
                         new AuthScope(targetHost.getHostName(), targetHost.getPort()));
-                if (creds == null) {
-                    throw new HttpException("No credentials for preemptive authentication");
+                if (creds != null) {
+                    authState.update(new BasicScheme(), creds);
+                } else {
+                    if (log.isDebugEnabled()) {
+                        log.debug("PreemptiveAuthInterceptor: No credentials for preemptive authentication");
+                    }
                 }
-                authState.update(new BasicScheme(), creds);
             }
         }
     }
