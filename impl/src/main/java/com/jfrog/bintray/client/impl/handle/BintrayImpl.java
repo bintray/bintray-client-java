@@ -60,7 +60,8 @@ public class BintrayImpl implements Bintray {
     private static boolean statusNotOk(int statusCode) {
         return statusCode != HttpStatus.SC_OK
                 && statusCode != HttpStatus.SC_CREATED
-                && statusCode != HttpStatus.SC_ACCEPTED;
+                && statusCode != HttpStatus.SC_ACCEPTED
+                && statusCode != HttpStatus.SC_NO_CONTENT;
     }
 
     @Override
